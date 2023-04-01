@@ -5,8 +5,9 @@ using Sharlayan.Models;
 using System.Diagnostics;
 using System.Text;
 
+HttpPostModule httpPostModule = new HttpPostModule();
 string[] cutsceneTextKeyArray = { "CUTSCENE_TEXT_1", "CUTSCENE_TEXT_2", "CUTSCENE_TEXT_3" };
-string[] panelNameKeyArray = { "PANEL_NAME_1" };
+//string[] panelNameKeyArray = { "PANEL_NAME_1" };
 
 main();
 
@@ -32,8 +33,8 @@ void main()
         addSignature(signatures);
 
         memoryHandler.Scanner.LoadOffsets(signatures.ToArray());
-        //startFetching(memoryHandler, cutsceneTextKeyArray);
-        startFetching(memoryHandler, panelNameKeyArray);
+        startFetching(memoryHandler, cutsceneTextKeyArray);
+        //startFetching(memoryHandler, panelNameKeyArray);
 
         Console.WriteLine("讀取文字中，請勿關閉本視窗");
     }
@@ -87,6 +88,7 @@ void addSignature(List<Signature> signatures)
             }
     });
 
+    /*
     signatures.Add(new Signature
     {
         Key = "PANEL_NAME_1",
@@ -103,6 +105,7 @@ void addSignature(List<Signature> signatures)
                 0xE58
             }
     });
+    */
 
     return;
 }
@@ -128,7 +131,7 @@ void startFetching(MemoryHandler memoryHandler, string[] keyArray)
                     if (byteArray.Length > 0)
                     {
                         keyIndex = i;
-                        //byteArray = clearArray(byteArray);
+                        byteArray = clearArray(byteArray);
                         break;
                     }
                 }
@@ -139,9 +142,7 @@ void startFetching(MemoryHandler memoryHandler, string[] keyArray)
 
                     string byteString = Encoding.GetEncoding("utf-8").GetString(byteArray);
                     Console.WriteLine("接收字串(" + keyArray[keyIndex] + "): " + byteString.Replace('\r', ' ') + "\n");
-                    printArray(byteArray);
-
-                    HttpPostModule httpPostModule = new HttpPostModule();
+                    printArray(byteArray);                   
                     httpPostModule.post(byteString);
                 }
             }
