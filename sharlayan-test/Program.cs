@@ -141,8 +141,9 @@ void startFetching(MemoryHandler memoryHandler, string[] keyArray)
                     lastByteArray = byteArray;
 
                     string byteString = Encoding.GetEncoding("utf-8").GetString(byteArray);
-                    Console.WriteLine("接收字串(" + keyArray[keyIndex] + "): " + byteString.Replace('\r', ' ') + "\n");
-                    printArray(byteArray);                   
+                    Console.WriteLine("接收字串(" + keyArray[keyIndex] + "): " + byteString.Replace('\r', ' '));
+                    Console.WriteLine("接收位元組(" + keyArray[keyIndex] + "): " + getArrayString(byteArray) + "\n");
+                    getArrayString(byteArray);
                     httpPostModule.post(byteString);
                 }
             }
@@ -165,19 +166,18 @@ void startFetching(MemoryHandler memoryHandler, string[] keyArray)
     return;
 }
 
-void printArray(byte[] byteArray)
+string getArrayString(byte[] byteArray)
 {
-    Console.Write("接收位元組: [");
+    string byteArrayString = "[";
 
     for (int i = 0; i < byteArray.Length; i++)
     {
-        Console.Write(byteArray[i]);
-        Console.Write(" ");
+        byteArrayString += byteArray[i] + " ";
     }
 
-    Console.Write("]\n");
+    byteArrayString += "]";
 
-    return;
+    return byteArrayString;
 }
 
 byte[] clearArray(byte[] byteArray)
