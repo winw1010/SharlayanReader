@@ -6,8 +6,11 @@ using System.Diagnostics;
 using System.Text;
 
 HttpPostModule httpPostModule = new HttpPostModule();
-string[] cutsceneTextKeyArray = { "CUTSCENE_TEXT_1", "CUTSCENE_TEXT_2", "CUTSCENE_TEXT_3" };
-//string[] panelNameKeyArray = { "PANEL_NAME_1" };
+
+string configPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+
+string[] cutsceneTextKeyArray = { "CUTSCENE_TEXT" };
+string[] panelNameKeyArray = { "PANEL_NAME" };
 
 main();
 
@@ -52,60 +55,15 @@ void addSignature(List<Signature> signatures)
 {
     signatures.Add(new Signature
     {
-        Key = "CUTSCENE_TEXT_1",
+        Key = "CUTSCENE_TEXT",
         PointerPath = new List<long>
             {
-                0x020C9CC0,
+                0x020D0CC0,
                 0x68,
                 0x250,
                 0x0
             }
     });
-
-    signatures.Add(new Signature
-    {
-        Key = "CUTSCENE_TEXT_2",
-        PointerPath = new List<long>
-            {
-                0x020AA1B0,
-                0x10,
-                0x20,
-                0x100,
-                0x0
-            }
-    });
-
-    signatures.Add(new Signature
-    {
-        Key = "CUTSCENE_TEXT_3",
-        PointerPath = new List<long>
-            {
-                0x020A4418,
-                0x520,
-                0x20,
-                0x100,
-                0x0
-            }
-    });
-
-    /*
-    signatures.Add(new Signature
-    {
-        Key = "PANEL_NAME_1",
-        PointerPath = new List<long>
-            {
-                0x020C9CC0,
-                0x148,
-                0x0,
-                0x10,
-                0x10,
-                0x10,
-                0x0,
-                0xC8,
-                0xE58
-            }
-    });
-    */
 
     return;
 }
