@@ -4,8 +4,7 @@ FFXIV旁白擷取測試程式
 ## 注意事項
 - 請至[Release](https://github.com/winw1010/sharlayan-test/releases)下載可執行程式
 
-- 使用前需安裝.NET 6.0，否則無法開啟
-https://dotnet.microsoft.com/en-us/download/dotnet/thank-you/sdk-6.0.407-windows-x64-installer
+- 使用前需安裝[.NET 6.0](https://dotnet.microsoft.com/en-us/download/dotnet/thank-you/sdk-6.0.407-windows-x64-installer)，否則無法開啟
 
 - 如果重新啟動遊戲，這個測試程式也必須重新啟動
 
