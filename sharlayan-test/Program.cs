@@ -1,28 +1,63 @@
-﻿using Newtonsoft.Json;
+﻿#region Using
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Sharlayan;
 using Sharlayan.Core;
-using Sharlayan.Enums;
 using Sharlayan.Models;
 using Sharlayan.Models.ReadResults;
 using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
+#endregion
+
+#region Global Variable
+bool isRunning = false;
 
 HttpPostModule httpPostModule = new HttpPostModule();
-
-string configPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
 
 int _previousArrayIndex = 0;
 int _previousOffset = 0;
 
-main();
+string lastSystemMessage = "";
+string lastChatLogText = "";
+string lastDialogText = "";
+string lastCutsceneText = "";
+#endregion
 
-void main()
+#region Main Process
+MainProcess();
+
+void MainProcess()
+{
+    while (true)
+    {
+        try
+        {
+            Console.OutputEncoding = Encoding.UTF8;
+            MemoryHandler? memoryHandler = ProcessScanner();
+
+            if (memoryHandler != null && isRunning)
+            {
+                WriteSystemMessage("讀取字幕中，請勿關閉本視窗\n");
+                ChatLogScanner(memoryHandler);
+                DialogScanner(memoryHandler);
+                CutsceneScanner(memoryHandler, new string[] { "CUTSCENE_TEXT" }, 0, 256);
+                while (isRunning) ;
+            }
+        }
+        catch (Exception exception)
+        {
+            WriteSystemMessage(exception.Message);
+        }
+
+        SystemDelay(1000);
+    }
+}
+
+MemoryHandler? ProcessScanner()
 {
     try
     {
-        Console.OutputEncoding = Encoding.UTF8;
-
         SharlayanConfiguration configuration = new SharlayanConfiguration
         {
             ProcessModel = new ProcessModel
@@ -35,26 +70,22 @@ void main()
         memoryHandler.Scanner.Locations.Clear();
 
         List<Signature> signatures = new List<Signature>();
-        addSignature(signatures);
+        AddSignature(signatures);
 
         memoryHandler.Scanner.LoadOffsets(signatures.ToArray());
-        getChatLog(memoryHandler);
-        getDialog(memoryHandler);
-        getCutscene(memoryHandler, new string[] { "CUTSCENE_TEXT" }, 0, 256);
+        isRunning = true;
 
-        Console.WriteLine("讀取文字中，請勿關閉本視窗");
+        return memoryHandler;
     }
     catch (Exception exception)
     {
-        Console.WriteLine(exception.Message);
-        Console.WriteLine("無法存取FFXIV，請在啟動FFXIV之後再啟動本程式\n按任意鍵關閉");
+        WriteSystemMessage("等待FFXIV啟動...(" + exception.Message + ")\n");
+        isRunning = false;
+        return null;
     }
-
-    Console.ReadLine();
-    return;
 }
 
-void addSignature(List<Signature> signatures)
+void AddSignature(List<Signature> signatures)
 {
     signatures.Add(new Signature
     {
@@ -116,65 +147,87 @@ void addSignature(List<Signature> signatures)
 
     return;
 }
+#endregion
 
-void getChatLog(MemoryHandler memoryHandler)
+#region ChatLogScanner
+void ChatLogScanner(MemoryHandler memoryHandler)
 {
     Task.Run(() =>
     {
-        string lastChatLotText = "";
-
-        while (true)
+        while (isRunning)
         {
-            while (memoryHandler.Scanner.IsScanning) { }
+            while (memoryHandler.Scanner.IsScanning) ;
 
-            ChatLogResult readResult = memoryHandler.Reader.GetChatLog(_previousArrayIndex, _previousOffset);
-
-            List<ChatLogItem> chatLogEntries = readResult.ChatLogItems.ToList();
-
-            _previousArrayIndex = readResult.PreviousArrayIndex;
-            _previousOffset = readResult.PreviousOffset;
-
-
-            if ((chatLogEntries.Count > 0 && chatLogEntries[0].Code != "003D" && chatLogEntries[0].Message != lastChatLotText))
+            try
             {
-                lastChatLotText = chatLogEntries[0].Message;
+                ChatLogResult readResult = memoryHandler.Reader.GetChatLog(_previousArrayIndex, _previousOffset);
 
-                string logMessage = chatLogEntries[0].Message;
-                string logName = logMessage.Split(':')[0];
-                string logText = logMessage.Replace(logName, "");
-                httpPostModule.post("CHAT_LOG", chatLogEntries[0].Code, logName, new TextCleaner().clearText(logText));
+                List<ChatLogItem> chatLogEntries = readResult.ChatLogItems.ToList();
 
-                Console.WriteLine("對話紀錄字串: (" + chatLogEntries[0].Code + ")" + chatLogEntries[0].Message.Replace('\r', ' ') + "\n");
+                _previousArrayIndex = readResult.PreviousArrayIndex;
+                _previousOffset = readResult.PreviousOffset;
+
+                if (chatLogEntries.Count > 0 && chatLogEntries[0].Code != "003D" && chatLogEntries[0].Message != lastChatLogText)
+                {
+                    lastChatLogText = chatLogEntries[0].Message;
+
+                    string logMessage = chatLogEntries[0].Message;
+                    string logName = logMessage.Split(':')[0];
+                    string logText = logMessage.Replace(logName, "");
+                    httpPostModule.Post("CHAT_LOG", chatLogEntries[0].Code, logName, logText);
+
+                    WriteSystemMessage("對話紀錄字串: (" + chatLogEntries[0].Code + ")" + chatLogEntries[0].Message.Replace('\r', ' ') + "\n");
+                }
+
+                SystemDelay();
             }
-
-            delay();
+            catch (Exception exception)
+            {
+                WriteSystemMessage(exception.Message);
+                isRunning = false;
+            }
         }
+
+        return;
     });
+
+    return;
 }
+#endregion
 
-void getDialog(MemoryHandler memoryHandler)
+#region DialogScanner
+void DialogScanner(MemoryHandler memoryHandler)
 {
     Task.Run(() =>
     {
-        string lastPanelText = "";
-
-        while (true)
+        while (isRunning)
         {
-            while (memoryHandler.Scanner.IsScanning) { }
-            string[] result = GetDialogPanel(memoryHandler);
+            while (memoryHandler.Scanner.IsScanning) ;
 
-            if (result.Length > 0 && result[1] != lastPanelText)
+            try
             {
-                lastPanelText = result[1];
-                httpPostModule.post("DIALOG", "003D", result[0], result[1]);
-                Console.WriteLine("對話框字串: " + result[0] + ": " + result[1].Replace('\r', ' ') + "\n");
-            }
+                string[] result = GetDialogPanel(memoryHandler);
 
-            delay();
+                if (result.Length > 0 && result[1] != lastDialogText)
+                {
+                    lastDialogText = result[1];
+                    httpPostModule.Post("DIALOG", "003D", result[0], result[1]);
+                    WriteSystemMessage("對話框字串: " + result[0] + ": " + result[1].Replace('\r', ' ') + "\n");
+                }
+
+                SystemDelay();
+            }
+            catch (Exception exception)
+            {
+                WriteSystemMessage(exception.Message);
+                isRunning = false;
+            }
         }
 
-
+        return;
     });
+
+    return;
 }
 
 string[] GetDialogPanel(MemoryHandler memoryHandler)
@@ -209,7 +262,7 @@ string[] GetDialogPanel(MemoryHandler memoryHandler)
         //Int32 unixTimestamp = (Int32)(DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
         //byte[] unixTimestampBytes = BitConverter.GetBytes(unixTimestamp).ToArray();
 
-        result = new string[] { byteToString(npcNameBytes), byteToString(textBytes) };
+        result = new string[] { ByteToString(npcNameBytes), ByteToString(textBytes) };
     }
 
     return result;
@@ -241,16 +294,18 @@ int GetRealTextLength(ref byte[] byteArray)
 
     return textEnd;
 }
+#endregion
 
-void getCutscene(MemoryHandler memoryHandler, string[] keyArray, int startIndex, int byteLength)
+#region CutsceneScanner
+void CutsceneScanner(MemoryHandler memoryHandler, string[] keyArray, int startIndex, int byteLength)
 {
     Task.Run(() =>
     {
-        byte[] lastByteArray = new byte[0];
+        string byteString = "";
 
-        while (true)
+        while (isRunning)
         {
-            while (memoryHandler.Scanner.IsScanning) { }
+            while (memoryHandler.Scanner.IsScanning) ;
 
             try
             {
@@ -263,54 +318,56 @@ void getCutscene(MemoryHandler memoryHandler, string[] keyArray, int startIndex,
                     if (byteArray.Length > 0)
                     {
                         //keyIndex = i;
-                        byteArray = clearArray(byteArray, startIndex);
+                        byteArray = ClearArray(byteArray, startIndex);
+                        byteString = ByteToString(byteArray);
                         break;
                     }
                 }
 
-                if (byteArray.Length > 0 && !compareArray(byteArray, lastByteArray))
+                if (byteArray.Length > 0 && byteString != lastCutsceneText)
                 {
-                    lastByteArray = byteArray;
-
-                    string byteString = byteToString(byteArray);
-                    httpPostModule.post("CUTSCENE", "003D", "", byteString, 1000);
-                    Console.WriteLine("過場字串: " + byteString.Replace('\r', ' ') + "\n過場位元組: " + getArrayString(byteArray) + "\n");
+                    lastCutsceneText = byteString;
+                    httpPostModule.Post("CUTSCENE", "003D", "", lastCutsceneText, 1000);
+                    WriteSystemMessage("過場字串: " + lastCutsceneText.Replace('\r', ' ') + "\n過場位元組: " + ArrayToString(byteArray) + "\n");
                 }
             }
             catch (Exception exception)
             {
-                Console.WriteLine(exception.Message);
+                WriteSystemMessage(exception.Message);
+                isRunning = false;
             }
 
-            delay();
+            SystemDelay();
         }
+
+        return;
     });
 
     return;
 }
+#endregion
 
-string byteToString(byte[] byteArray)
+#region Byte Functions
+string ByteToString(byte[] byteArray)
 {
-    string byteString = Encoding.GetEncoding("utf-8").GetString(byteArray);
-    byteString = new TextCleaner().clearText(byteString);
-    return byteString;
+    return Encoding.GetEncoding("utf-8").GetString(byteArray);
 }
 
-string getArrayString(byte[] byteArray)
+string ArrayToString(byte[] byteArray)
 {
-    string byteArrayString = "[";
+    string arrayString = "[";
 
     for (int i = 0; i < byteArray.Length; i++)
     {
-        byteArrayString += byteArray[i] + " ";
+        arrayString += byteArray[i] + " ";
     }
 
-    byteArrayString += "]";
+    arrayString += "]";
 
-    return byteArrayString;
+    return arrayString;
 }
 
-byte[] clearArray(byte[] byteArray, int startIndex)
+byte[] ClearArray(byte[] byteArray, int startIndex = 0)
 {
     List<byte> byteList = new List<byte>();
     int firstZeroIndex = byteArray.ToList().IndexOf(0x00, startIndex);
@@ -322,26 +379,10 @@ byte[] clearArray(byte[] byteArray, int startIndex)
 
     return byteList.ToArray();
 }
+#endregion
 
-bool compareArray(byte[] a, byte[] b)
-{
-    if (a.Length != b.Length)
-    {
-        return false;
-    }
-
-    for (int i = 0; i < a.Length; i++)
-    {
-        if (a[i] != b[i])
-        {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-void delay(int delayTIme = 100)
+#region System Functions
+void SystemDelay(int delayTIme = 100)
 {
     try
     {
@@ -349,10 +390,21 @@ void delay(int delayTIme = 100)
     }
     catch (Exception exception)
     {
-        Console.WriteLine(exception.Message);
+        WriteSystemMessage(exception.Message);
     }
 }
 
+void WriteSystemMessage(string message)
+{
+    if (message != lastSystemMessage)
+    {
+        lastSystemMessage = message;
+        Console.WriteLine(lastSystemMessage);
+    }
+}
+#endregion
+
+#region Class Definition
 class TextCleaner
 {
     private static readonly Regex ArrowRegex = new Regex(@"", RegexOptions.Compiled);
@@ -360,8 +412,9 @@ class TextCleaner
     private static readonly Regex NoPrintingCharactersRegex = new Regex(@"[\x00-\x1F]+", RegexOptions.Compiled);
     private static readonly Regex SpecialPurposeUnicodeRegex = new Regex(@"[\uE000-\uF8FF]", RegexOptions.Compiled);
     private static readonly Regex SpecialReplacementRegex = new Regex(@"[�]", RegexOptions.Compiled);
+    private static readonly Regex ItemRegex = new Regex(@"H%I&(.+?)IH", RegexOptions.Compiled);
 
-    public string clearText(string text)
+    public string ClearText(string text)
     {
         // replace right arrow in chat (parsing)
         text = ArrowRegex.Replace(text, "⇒");
@@ -373,67 +426,83 @@ class TextCleaner
         text = SpecialReplacementRegex.Replace(text, string.Empty);
         // remove characters 0-31
         text = NoPrintingCharactersRegex.Replace(text, string.Empty);
-        // remove 「H%I& and IH」
-        text = text.Replace("「H%I&", "「");
-        text = text.Replace("IH」", "」");
+        // remove H%I& and IH
+        text = ItemRegex.Replace(text, "$1");
 
         return text;
     }
 }
 
-class SocketConfig
-{
-    public string ip = "localhost";
-    public int port = 8898;
-}
-
 class HttpPostModule
 {
-    private HttpClient httpClient = new HttpClient();
-    private SocketConfig socketConfig = new SocketConfig();
+    private HttpClient Client = new HttpClient();
+    private SocketConfig Config = new SocketConfig();
+    private string ConfigPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), @"Tataru Helper Node\setting\config.json");
 
     public HttpPostModule()
     {
+        SetConfig();
+    }
+
+    private void SetConfig()
+    {
         try
         {
-            string json = System.IO.File.ReadAllText("server.json");
-            SocketConfig? config = JsonConvert.DeserializeObject<SocketConfig>(json);
+            string json = System.IO.File.ReadAllText(ConfigPath);
+            JObject? data = JObject.Parse(json);
+            SocketConfig? config = data?["server"]?.ToObject<SocketConfig>();
 
             if (config != null)
             {
-                socketConfig = config;
+                Config = config;
             }
         }
         catch (Exception exception)
         {
-            string serverString = JsonConvert.SerializeObject(new SocketConfig());
-            System.IO.File.WriteAllText("server.json", serverString);
+            Config = new SocketConfig();
             Console.WriteLine(exception.Message);
         }
     }
 
-    public void post(string type, string code, string name, string text, int sleepTime = 0)
+    public void Post(string type, string code, string name, string text, int sleepTime = 0, bool isRetry = false)
     {
-        string url = "http://" + socketConfig.ip + ":" + socketConfig.port;
+        string url = "http://" + Config.IP + ":" + Config.Port;
         string dataString = JsonConvert.SerializeObject(new
         {
-            type = type,
-            code = code.Trim(),
-            name = name.Trim(),
-            text = text.Trim()
+            type,
+            code,
+            name = new TextCleaner().ClearText(name.Trim()),
+            text = new TextCleaner().ClearText(text.Trim())
         });
 
-        Task.Run(() =>
+        Task.Run(async () =>
         {
             try
             {
                 Thread.Sleep(sleepTime);
-                httpClient.PostAsync(url, new StringContent(dataString, Encoding.UTF8, "application/json"));
+                await Client.PostAsync(url, new StringContent(dataString, Encoding.UTF8, "application/json"));
             }
             catch (Exception exception)
             {
+                SetConfig();
                 Console.WriteLine(exception.Message);
+
+                if (!isRetry)
+                {
+                    Post(type, code, name, text, sleepTime, true);
+                }
             }
-        }).WaitAsync(TimeSpan.FromMilliseconds(10000));
+
+            return;
+        });
+
+        return;
+    }
+
+    private class SocketConfig
+    {
+        public string IP = "localhost";
+        public int Port = 8898;
     }
 }
+#endregion
