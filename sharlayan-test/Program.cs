@@ -36,8 +36,9 @@ void MainProcess()
             Console.OutputEncoding = Encoding.UTF8;
             MemoryHandler? memoryHandler = ProcessScanner();
 
-            if (memoryHandler != null && isRunning)
+            if (memoryHandler != null)
             {
+                isRunning = true;
                 WriteSystemMessage("讀取字幕中，請勿關閉本視窗\n");
                 ChatLogScanner(memoryHandler);
                 DialogScanner(memoryHandler);
@@ -47,7 +48,8 @@ void MainProcess()
         }
         catch (Exception exception)
         {
-            WriteSystemMessage(exception.Message);
+            WriteSystemMessage("MainProcess: " + exception.Message);
+            isRunning = false;
         }
 
         SystemDelay(1000);
@@ -58,11 +60,14 @@ MemoryHandler? ProcessScanner()
 {
     try
     {
+        Process[] processes = Process.GetProcessesByName("ffxiv_dx11");
+        if (processes.Length <= 0) { throw new Exception("Process ffxiv_dx11 not found."); }
+
         SharlayanConfiguration configuration = new SharlayanConfiguration
         {
             ProcessModel = new ProcessModel
             {
-                Process = Process.GetProcessesByName("ffxiv_dx11").FirstOrDefault(),
+                Process = processes[0],
             },
         };
 
@@ -71,9 +76,7 @@ MemoryHandler? ProcessScanner()
 
         List<Signature> signatures = new List<Signature>();
         AddSignature(signatures);
-
         memoryHandler.Scanner.LoadOffsets(signatures.ToArray());
-        isRunning = true;
 
         return memoryHandler;
     }
@@ -183,7 +186,7 @@ void ChatLogScanner(MemoryHandler memoryHandler)
             }
             catch (Exception exception)
             {
-                WriteSystemMessage(exception.Message);
+                WriteSystemMessage("ChatLogScanner: " + exception.Message);
                 isRunning = false;
             }
         }
@@ -219,7 +222,7 @@ void DialogScanner(MemoryHandler memoryHandler)
             }
             catch (Exception exception)
             {
-                WriteSystemMessage(exception.Message);
+                WriteSystemMessage("DialogScanner: " + exception.Message);
                 isRunning = false;
             }
         }
@@ -333,7 +336,7 @@ void CutsceneScanner(MemoryHandler memoryHandler, string[] keyArray, int startIn
             }
             catch (Exception exception)
             {
-                WriteSystemMessage(exception.Message);
+                WriteSystemMessage("CutsceneScanner: " + exception.Message);
                 isRunning = false;
             }
 
@@ -390,7 +393,7 @@ void SystemDelay(int delayTIme = 100)
     }
     catch (Exception exception)
     {
-        WriteSystemMessage(exception.Message);
+        WriteSystemMessage("SystemDelay: " + exception.Message);
     }
 }
 
@@ -409,7 +412,7 @@ class TextCleaner
 {
     private static readonly Regex ArrowRegex = new Regex(@"", RegexOptions.Compiled);
     private static readonly Regex HQRegex = new Regex(@"", RegexOptions.Compiled);
-    private static readonly Regex NoPrintingCharactersRegex = new Regex(@"[\x00-\x1F]+", RegexOptions.Compiled);
+    private static readonly Regex NoPrintingCharactersRegex = new Regex(@"[\x00-\x0C\x0E-\x1F]+", RegexOptions.Compiled);
     private static readonly Regex SpecialPurposeUnicodeRegex = new Regex(@"[\uE000-\uF8FF]", RegexOptions.Compiled);
     private static readonly Regex SpecialReplacementRegex = new Regex(@"[�]", RegexOptions.Compiled);
     private static readonly Regex ItemRegex = new Regex(@"H%I&(.+?)IH", RegexOptions.Compiled);
@@ -460,7 +463,7 @@ class HttpPostModule
         catch (Exception exception)
         {
             Config = new SocketConfig();
-            Console.WriteLine(exception.Message);
+            Console.WriteLine("SetConfig: " + exception.Message);
         }
     }
 
@@ -485,7 +488,7 @@ class HttpPostModule
             catch (Exception exception)
             {
                 SetConfig();
-                Console.WriteLine(exception.Message);
+                Console.WriteLine("Post: " + exception.Message);
 
                 if (!isRetry)
                 {
