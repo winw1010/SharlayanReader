@@ -16,5 +16,5 @@ https://dotnet.microsoft.com/en-us/download/dotnet/thank-you/sdk-6.0.407-windows
 
 ## Credits
 本程式使用以下的開源專案:
-
-[Sharlayan](https://github.com/FFXIVAPP/sharlayan)  
+* [Sharlayan](https://github.com/FFXIVAPP/sharlayan)
+* [TataruHelper](https://github.com/NightlyRevenger/TataruHelper)  
