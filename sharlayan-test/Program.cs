@@ -13,7 +13,7 @@ using System.Text.RegularExpressions;
 #region Global Variable
 bool isRunning = false;
 
-HttpPostModule httpPostModule = new HttpPostModule();
+HttpModule httpModule = new HttpModule();
 
 int _previousArrayIndex = 0;
 int _previousOffset = 0;
@@ -35,7 +35,7 @@ void MainProcess()
     {
         try
         {
-            MemoryHandler? memoryHandler = ProcessScanner();
+            MemoryHandler? memoryHandler = GetGameProcess();
 
             if (memoryHandler != null)
             {
@@ -59,7 +59,7 @@ void MainProcess()
     }
 }
 
-MemoryHandler? ProcessScanner()
+MemoryHandler? GetGameProcess()
 {
     try
     {
@@ -177,7 +177,7 @@ void ChatLogScanner(MemoryHandler memoryHandler)
                     string logMessage = chatLogEntries[0].Message;
                     string logName = logMessage.Split(':')[0];
                     string logText = logMessage.Replace(logName, "");
-                    httpPostModule.Post("CHAT_LOG", chatLogEntries[0].Code, logName, logText);
+                    httpModule.Post("CHAT_LOG", chatLogEntries[0].Code, logName, logText);
 
                     WriteSystemMessage("對話紀錄字串: (" + chatLogEntries[0].Code + ")" + chatLogEntries[0].Message.Replace('\r', ' ') + "\n");
                 }
@@ -214,7 +214,7 @@ void DialogScanner(MemoryHandler memoryHandler)
                 if (result.Length > 0 && result[1] != lastDialogText)
                 {
                     lastDialogText = result[1];
-                    httpPostModule.Post("DIALOG", "003D", result[0], result[1]);
+                    httpModule.Post("DIALOG", "003D", result[0], result[1]);
                     WriteSystemMessage("對話框字串: " + result[0] + ": " + result[1].Replace('\r', ' ') + "\n");
                 }
             }
@@ -330,7 +330,7 @@ void CutsceneScanner(MemoryHandler memoryHandler, string[] keyArray, int startIn
                 if (byteArray.Length > 0 && byteString != lastCutsceneText)
                 {
                     lastCutsceneText = byteString;
-                    httpPostModule.Post("CUTSCENE", "003D", "", lastCutsceneText, 1000);
+                    httpModule.Post("CUTSCENE", "003D", "", lastCutsceneText, 1000);
                     WriteSystemMessage("過場字串: " + lastCutsceneText.Replace('\r', ' ') + "\n過場位元組: " + ArrayToString(byteArray) + "\n");
                 }
             }
@@ -436,13 +436,13 @@ class TextCleaner
     }
 }
 
-class HttpPostModule
+class HttpModule
 {
     private HttpClient Client = new HttpClient();
     private SocketConfig Config = new SocketConfig();
     private string ConfigPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), @"Tataru Helper Node\setting\config.json");
 
-    public HttpPostModule()
+    public HttpModule()
     {
         SetConfig();
     }
