@@ -175,8 +175,9 @@ void ChatLogScanner(MemoryHandler memoryHandler)
                     lastChatLogText = chatLogEntries[0].Message;
 
                     string logMessage = chatLogEntries[0].Message;
-                    string logName = logMessage.Split(':')[0];
-                    string logText = logMessage.Replace(logName, "");
+                    string[] splitLogmessage = logMessage.Split(':');
+                    string logName = splitLogmessage.Length > 1 ? splitLogmessage[0] : "";
+                    string logText = logName != "" ? logMessage.Replace(logName + ":", "") : logMessage;
                     httpModule.Post("CHAT_LOG", chatLogEntries[0].Code, logName, logText);
 
                     WriteSystemMessage("對話紀錄字串: (" + chatLogEntries[0].Code + ")" + chatLogEntries[0].Message.Replace('\r', ' ') + "\n");
@@ -385,7 +386,7 @@ byte[] ClearArray(byte[] byteArray, int startIndex = 0)
 #endregion
 
 #region System Functions
-void SystemDelay(int delayTIme = 100)
+void SystemDelay(int delayTIme = 50)
 {
     try
     {
@@ -463,7 +464,6 @@ class HttpModule
         catch (Exception exception)
         {
             Config = new SocketConfig();
-            Console.WriteLine("SetConfig: " + exception.Message);
         }
     }
 
@@ -485,15 +485,10 @@ class HttpModule
                 Thread.Sleep(sleepTime);
                 await Client.PostAsync(url, new StringContent(dataString, Encoding.UTF8, "application/json"));
             }
-            catch (Exception exception)
+            catch (Exception)
             {
                 SetConfig();
-                Console.WriteLine("Post: " + exception.Message);
-
-                if (!isRetry)
-                {
-                    Post(type, code, name, text, sleepTime, true);
-                }
+                if (!isRetry) { Post(type, code, name, text, sleepTime, true); }
             }
 
             return;
