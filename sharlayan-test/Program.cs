@@ -29,21 +29,24 @@ MainProcess();
 
 void MainProcess()
 {
+    try { Console.OutputEncoding = Encoding.UTF8; } catch (Exception) { }
+
     while (true)
     {
         try
         {
-            Console.OutputEncoding = Encoding.UTF8;
             MemoryHandler? memoryHandler = ProcessScanner();
 
             if (memoryHandler != null)
             {
                 isRunning = true;
+
                 WriteSystemMessage("讀取字幕中，請勿關閉本視窗\n");
                 ChatLogScanner(memoryHandler);
                 DialogScanner(memoryHandler);
                 CutsceneScanner(memoryHandler, new string[] { "CUTSCENE_TEXT" }, 0, 256);
-                while (isRunning) ;
+
+                while (isRunning) { SystemDelay(1000); }
             }
         }
         catch (Exception exception)
@@ -60,14 +63,11 @@ MemoryHandler? ProcessScanner()
 {
     try
     {
-        Process[] processes = Process.GetProcessesByName("ffxiv_dx11");
-        if (processes.Length <= 0) { throw new Exception("Process ffxiv_dx11 not found."); }
-
         SharlayanConfiguration configuration = new SharlayanConfiguration
         {
             ProcessModel = new ProcessModel
             {
-                Process = processes[0],
+                Process = Process.GetProcessesByName("ffxiv_dx11").FirstOrDefault(),
             },
         };
 
@@ -159,7 +159,7 @@ void ChatLogScanner(MemoryHandler memoryHandler)
     {
         while (isRunning)
         {
-            while (memoryHandler.Scanner.IsScanning) ;
+            while (memoryHandler.Scanner.IsScanning) { SystemDelay(); }
 
             try
             {
@@ -181,14 +181,14 @@ void ChatLogScanner(MemoryHandler memoryHandler)
 
                     WriteSystemMessage("對話紀錄字串: (" + chatLogEntries[0].Code + ")" + chatLogEntries[0].Message.Replace('\r', ' ') + "\n");
                 }
-
-                SystemDelay();
             }
             catch (Exception exception)
             {
                 WriteSystemMessage("ChatLogScanner: " + exception.Message);
                 isRunning = false;
             }
+
+            SystemDelay();
         }
 
         return;
@@ -205,7 +205,7 @@ void DialogScanner(MemoryHandler memoryHandler)
     {
         while (isRunning)
         {
-            while (memoryHandler.Scanner.IsScanning) ;
+            while (memoryHandler.Scanner.IsScanning) { SystemDelay(); }
 
             try
             {
@@ -217,14 +217,14 @@ void DialogScanner(MemoryHandler memoryHandler)
                     httpPostModule.Post("DIALOG", "003D", result[0], result[1]);
                     WriteSystemMessage("對話框字串: " + result[0] + ": " + result[1].Replace('\r', ' ') + "\n");
                 }
-
-                SystemDelay();
             }
             catch (Exception exception)
             {
                 WriteSystemMessage("DialogScanner: " + exception.Message);
                 isRunning = false;
             }
+
+            SystemDelay();
         }
 
         return;
@@ -308,7 +308,7 @@ void CutsceneScanner(MemoryHandler memoryHandler, string[] keyArray, int startIn
 
         while (isRunning)
         {
-            while (memoryHandler.Scanner.IsScanning) ;
+            while (memoryHandler.Scanner.IsScanning) { SystemDelay(); }
 
             try
             {
