@@ -386,7 +386,7 @@ byte[] ClearArray(byte[] byteArray, int startIndex = 0)
 #endregion
 
 #region System Functions
-void SystemDelay(int delayTIme = 50)
+void SystemDelay(int delayTIme = 10)
 {
     try
     {
