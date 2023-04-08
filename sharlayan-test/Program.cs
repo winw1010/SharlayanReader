@@ -173,12 +173,12 @@ void ChatLogScanner(MemoryHandler memoryHandler)
             HttpModule httpModule = new HttpModule();
             httpModule.Post("CHAT_LOG", chatLogEntries[0].Code, logName, logText);
 
-            WriteSystemMessage("對話紀錄字串: (" + chatLogEntries[0].Code + ")" + chatLogEntries[0].Message.Replace('\r', ' '));
+            Console.WriteLine("對話紀錄字串: (" + chatLogEntries[0].Code + ")" + chatLogEntries[0].Message.Replace('\r', ' '));
         }
     }
     catch (Exception exception)
     {
-        WriteSystemMessage("ChatLogScanner: " + exception.Message);
+        Console.WriteLine("ChatLogScanner: " + exception.Message);
         isScanning = false;
     }
 
@@ -198,12 +198,12 @@ void DialogScanner(MemoryHandler memoryHandler)
             lastDialogText = result[1];
             HttpModule httpModule = new HttpModule();
             httpModule.Post("DIALOG", "003D", result[0], result[1]);
-            WriteSystemMessage("對話框字串: " + result[0] + ": " + result[1].Replace('\r', ' '));
+            Console.WriteLine("對話框字串: " + result[0] + ": " + result[1].Replace('\r', ' '));
         }
     }
     catch (Exception exception)
     {
-        WriteSystemMessage("DialogScanner: " + exception.Message);
+        Console.WriteLine("DialogScanner: " + exception.Message);
         isScanning = false;
     }
 
@@ -296,13 +296,13 @@ void CutsceneScanner(MemoryHandler memoryHandler)
                 lastCutsceneText = byteString;
                 HttpModule httpModule = new HttpModule();
                 httpModule.Post("CUTSCENE", "0044", "", lastCutsceneText, 1000);
-                WriteSystemMessage("過場字串: " + lastCutsceneText.Replace('\r', ' ') + "\n過場位元組: " + ArrayToString(byteArray));
+                Console.WriteLine("過場字串: " + lastCutsceneText.Replace('\r', ' ') + "\n過場位元組: " + ArrayToString(byteArray));
             }
         }
     }
     catch (Exception exception)
     {
-        WriteSystemMessage("CutsceneScanner: " + exception.Message);
+        Console.WriteLine("CutsceneScanner: " + exception.Message);
         isScanning = false;
     }
 
