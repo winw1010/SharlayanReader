@@ -13,8 +13,6 @@ using System.Text.RegularExpressions;
 #region Global Variable
 bool isRunning = false;
 
-HttpModule httpModule = new HttpModule();
-
 int _previousArrayIndex = 0;
 int _previousOffset = 0;
 
@@ -178,6 +176,7 @@ void ChatLogScanner(MemoryHandler memoryHandler)
                     string[] splitLogmessage = logMessage.Split(':');
                     string logName = splitLogmessage.Length > 1 ? splitLogmessage[0] : "";
                     string logText = logName != "" ? logMessage.Replace(logName + ":", "") : logMessage;
+                    HttpModule httpModule = new HttpModule();
                     httpModule.Post("CHAT_LOG", chatLogEntries[0].Code, logName, logText);
 
                     WriteSystemMessage("對話紀錄字串: (" + chatLogEntries[0].Code + ")" + chatLogEntries[0].Message.Replace('\r', ' ') + "\n");
@@ -215,6 +214,7 @@ void DialogScanner(MemoryHandler memoryHandler)
                 if (result.Length > 0 && result[1] != lastDialogText)
                 {
                     lastDialogText = result[1];
+                    HttpModule httpModule = new HttpModule();
                     httpModule.Post("DIALOG", "003D", result[0], result[1]);
                     WriteSystemMessage("對話框字串: " + result[0] + ": " + result[1].Replace('\r', ' ') + "\n");
                 }
@@ -331,7 +331,8 @@ void CutsceneScanner(MemoryHandler memoryHandler, string[] keyArray, int startIn
                 if (byteArray.Length > 0 && byteString != lastCutsceneText)
                 {
                     lastCutsceneText = byteString;
-                    httpModule.Post("CUTSCENE", "003D", "", lastCutsceneText, 1000);
+                    HttpModule httpModule = new HttpModule();
+                    httpModule.Post("CUTSCENE", "0044", "", lastCutsceneText, 1000);
                     WriteSystemMessage("過場字串: " + lastCutsceneText.Replace('\r', ' ') + "\n過場位元組: " + ArrayToString(byteArray) + "\n");
                 }
             }
@@ -439,13 +440,16 @@ class TextCleaner
 
 class HttpModule
 {
+    private static SocketConfig? Config = null;
     private HttpClient Client = new HttpClient();
-    private SocketConfig Config = new SocketConfig();
     private string ConfigPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), @"Tataru Helper Node\setting\config.json");
 
     public HttpModule()
     {
-        SetConfig();
+        if (Config == null)
+        {
+            SetConfig();
+        }
     }
 
     private void SetConfig()
@@ -460,8 +464,11 @@ class HttpModule
             {
                 Config = config;
             }
+            else {
+                Config = new SocketConfig();
+            }
         }
-        catch (Exception exception)
+        catch (Exception)
         {
             Config = new SocketConfig();
         }
