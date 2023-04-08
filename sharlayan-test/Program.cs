@@ -11,7 +11,7 @@ using System.Text.RegularExpressions;
 #endregion
 
 #region Global Variable
-bool isRunning = false;
+bool isScanning = false;
 
 int _previousArrayIndex = 0;
 int _previousOffset = 0;
@@ -37,20 +37,20 @@ void MainProcess()
 
             if (memoryHandler != null)
             {
-                isRunning = true;
+                isScanning = true;
 
-                WriteSystemMessage("讀取字幕中，請勿關閉本視窗\n");
-                ChatLogScanner(memoryHandler);
-                DialogScanner(memoryHandler);
-                CutsceneScanner(memoryHandler, new string[] { "CUTSCENE_TEXT" }, 0, 256);
+                WriteSystemMessage("讀取字幕中，請勿關閉本視窗");
+                RunTask(ChatLogScanner, memoryHandler);
+                RunTask(DialogScanner, memoryHandler);
+                RunTask(CutsceneScanner, memoryHandler);
 
-                while (isRunning) { SystemDelay(1000); }
+                while (isScanning) { SystemDelay(1000); }
             }
         }
         catch (Exception exception)
         {
             WriteSystemMessage("MainProcess: " + exception.Message);
-            isRunning = false;
+            isScanning = false;
         }
 
         SystemDelay(1000);
@@ -80,8 +80,8 @@ MemoryHandler? GetGameProcess()
     }
     catch (Exception exception)
     {
-        WriteSystemMessage("等待FFXIV啟動...(" + exception.Message + ")\n");
-        isRunning = false;
+        WriteSystemMessage("等待FFXIV啟動...(" + exception.Message + ")");
+        isScanning = false;
         return null;
     }
 }
@@ -153,46 +153,34 @@ void AddSignature(List<Signature> signatures)
 #region ChatLogScanner
 void ChatLogScanner(MemoryHandler memoryHandler)
 {
-    Task.Run(() =>
+    try
     {
-        while (isRunning)
+        ChatLogResult readResult = memoryHandler.Reader.GetChatLog(_previousArrayIndex, _previousOffset);
+
+        List<ChatLogItem> chatLogEntries = readResult.ChatLogItems.ToList();
+
+        _previousArrayIndex = readResult.PreviousArrayIndex;
+        _previousOffset = readResult.PreviousOffset;
+
+        if (chatLogEntries.Count > 0 && chatLogEntries[0].Code != "003D" && chatLogEntries[0].Message != lastChatLogText)
         {
-            while (memoryHandler.Scanner.IsScanning) { SystemDelay(); }
+            lastChatLogText = chatLogEntries[0].Message;
 
-            try
-            {
-                ChatLogResult readResult = memoryHandler.Reader.GetChatLog(_previousArrayIndex, _previousOffset);
+            string logMessage = chatLogEntries[0].Message;
+            string[] splitLogmessage = logMessage.Split(':');
+            string logName = splitLogmessage.Length > 1 ? splitLogmessage[0] : "";
+            string logText = logName != "" ? logMessage.Replace(logName + ":", "") : logMessage;
+            HttpModule httpModule = new HttpModule();
+            httpModule.Post("CHAT_LOG", chatLogEntries[0].Code, logName, logText);
 
-                List<ChatLogItem> chatLogEntries = readResult.ChatLogItems.ToList();
-
-                _previousArrayIndex = readResult.PreviousArrayIndex;
-                _previousOffset = readResult.PreviousOffset;
-
-                if (chatLogEntries.Count > 0 && chatLogEntries[0].Code != "003D" && chatLogEntries[0].Message != lastChatLogText)
-                {
-                    lastChatLogText = chatLogEntries[0].Message;
-
-                    string logMessage = chatLogEntries[0].Message;
-                    string[] splitLogmessage = logMessage.Split(':');
-                    string logName = splitLogmessage.Length > 1 ? splitLogmessage[0] : "";
-                    string logText = logName != "" ? logMessage.Replace(logName + ":", "") : logMessage;
-                    HttpModule httpModule = new HttpModule();
-                    httpModule.Post("CHAT_LOG", chatLogEntries[0].Code, logName, logText);
-
-                    WriteSystemMessage("對話紀錄字串: (" + chatLogEntries[0].Code + ")" + chatLogEntries[0].Message.Replace('\r', ' ') + "\n");
-                }
-            }
-            catch (Exception exception)
-            {
-                WriteSystemMessage("ChatLogScanner: " + exception.Message);
-                isRunning = false;
-            }
-
-            SystemDelay();
+            WriteSystemMessage("對話紀錄字串: (" + chatLogEntries[0].Code + ")" + chatLogEntries[0].Message.Replace('\r', ' '));
         }
-
-        return;
-    });
+    }
+    catch (Exception exception)
+    {
+        WriteSystemMessage("ChatLogScanner: " + exception.Message);
+        isScanning = false;
+    }
 
     return;
 }
@@ -201,35 +189,23 @@ void ChatLogScanner(MemoryHandler memoryHandler)
 #region DialogScanner
 void DialogScanner(MemoryHandler memoryHandler)
 {
-    Task.Run(() =>
+    try
     {
-        while (isRunning)
+        string[] result = GetDialogPanel(memoryHandler);
+
+        if (result.Length > 0 && result[1] != lastDialogText)
         {
-            while (memoryHandler.Scanner.IsScanning) { SystemDelay(); }
-
-            try
-            {
-                string[] result = GetDialogPanel(memoryHandler);
-
-                if (result.Length > 0 && result[1] != lastDialogText)
-                {
-                    lastDialogText = result[1];
-                    HttpModule httpModule = new HttpModule();
-                    httpModule.Post("DIALOG", "003D", result[0], result[1]);
-                    WriteSystemMessage("對話框字串: " + result[0] + ": " + result[1].Replace('\r', ' ') + "\n");
-                }
-            }
-            catch (Exception exception)
-            {
-                WriteSystemMessage("DialogScanner: " + exception.Message);
-                isRunning = false;
-            }
-
-            SystemDelay();
+            lastDialogText = result[1];
+            HttpModule httpModule = new HttpModule();
+            httpModule.Post("DIALOG", "003D", result[0], result[1]);
+            WriteSystemMessage("對話框字串: " + result[0] + ": " + result[1].Replace('\r', ' '));
         }
-
-        return;
-    });
+    }
+    catch (Exception exception)
+    {
+        WriteSystemMessage("DialogScanner: " + exception.Message);
+        isScanning = false;
+    }
 
     return;
 }
@@ -301,52 +277,34 @@ int GetRealTextLength(ref byte[] byteArray)
 #endregion
 
 #region CutsceneScanner
-void CutsceneScanner(MemoryHandler memoryHandler, string[] keyArray, int startIndex, int byteLength)
+void CutsceneScanner(MemoryHandler memoryHandler)
 {
-    Task.Run(() =>
+    try
     {
+        byte[] byteArray = new byte[0];
         string byteString = "";
 
-        while (isRunning)
+        byteArray = memoryHandler.GetByteArray(memoryHandler.Scanner.Locations["CUTSCENE_TEXT"], 256);
+
+        if (byteArray.Length > 0)
         {
-            while (memoryHandler.Scanner.IsScanning) { SystemDelay(); }
+            byteArray = ClearArray(byteArray);
+            byteString = ByteToString(byteArray);
 
-            try
+            if (byteString != lastCutsceneText)
             {
-                //int keyIndex = 0;
-                byte[] byteArray = new byte[0];
-
-                for (int i = 0; i < keyArray.Length; i++)
-                {
-                    byteArray = memoryHandler.GetByteArray(memoryHandler.Scanner.Locations[keyArray[i]], byteLength);
-                    if (byteArray.Length > 0)
-                    {
-                        //keyIndex = i;
-                        byteArray = ClearArray(byteArray, startIndex);
-                        byteString = ByteToString(byteArray);
-                        break;
-                    }
-                }
-
-                if (byteArray.Length > 0 && byteString != lastCutsceneText)
-                {
-                    lastCutsceneText = byteString;
-                    HttpModule httpModule = new HttpModule();
-                    httpModule.Post("CUTSCENE", "0044", "", lastCutsceneText, 1000);
-                    WriteSystemMessage("過場字串: " + lastCutsceneText.Replace('\r', ' ') + "\n過場位元組: " + ArrayToString(byteArray) + "\n");
-                }
+                lastCutsceneText = byteString;
+                HttpModule httpModule = new HttpModule();
+                httpModule.Post("CUTSCENE", "0044", "", lastCutsceneText, 1000);
+                WriteSystemMessage("過場字串: " + lastCutsceneText.Replace('\r', ' ') + "\n過場位元組: " + ArrayToString(byteArray));
             }
-            catch (Exception exception)
-            {
-                WriteSystemMessage("CutsceneScanner: " + exception.Message);
-                isRunning = false;
-            }
-
-            SystemDelay();
         }
-
-        return;
-    });
+    }
+    catch (Exception exception)
+    {
+        WriteSystemMessage("CutsceneScanner: " + exception.Message);
+        isScanning = false;
+    }
 
     return;
 }
@@ -387,6 +345,21 @@ byte[] ClearArray(byte[] byteArray, int startIndex = 0)
 #endregion
 
 #region System Functions
+void RunTask(Action<MemoryHandler> action, MemoryHandler memoryHandler)
+{
+    Task.Run(() =>
+    {
+        while (isScanning)
+        {
+            while (memoryHandler.Scanner.IsScanning) { SystemDelay(); }
+            Task.Run(() => { action(memoryHandler); });
+            SystemDelay();
+        }
+        return;
+    });
+    return;
+}
+
 void SystemDelay(int delayTIme = 10)
 {
     try
@@ -404,7 +377,7 @@ void WriteSystemMessage(string message)
     if (message != lastSystemMessage)
     {
         lastSystemMessage = message;
-        Console.WriteLine(lastSystemMessage);
+        Console.WriteLine(lastSystemMessage + "\n");
     }
 }
 #endregion
@@ -423,18 +396,23 @@ class TextCleaner
     {
         // replace right arrow in chat (parsing)
         text = ArrowRegex.Replace(text, "⇒");
+
         // replace HQ symbol
         text = HQRegex.Replace(text, "[HQ]");
+
         // replace all Extended special purpose unicode with empty string
         text = SpecialPurposeUnicodeRegex.Replace(text, string.Empty);
+
         // cleanup special replacement character bytes: 239 191 189
         text = SpecialReplacementRegex.Replace(text, string.Empty);
+
         // remove characters 0-31
         text = NoPrintingCharactersRegex.Replace(text, string.Empty);
+
         // remove H%I& and IH
         text = ItemRegex.Replace(text, "$1");
 
-        return text;
+        return text.Trim();
     }
 }
 
@@ -464,7 +442,8 @@ class HttpModule
             {
                 Config = config;
             }
-            else {
+            else
+            {
                 Config = new SocketConfig();
             }
         }
@@ -476,13 +455,13 @@ class HttpModule
 
     public void Post(string type, string code, string name, string text, int sleepTime = 0, bool isRetry = false)
     {
-        string url = "http://" + Config.IP + ":" + Config.Port;
+        string url = "http://" + Config?.IP + ":" + Config?.Port;
         string dataString = JsonConvert.SerializeObject(new
         {
             type,
             code,
-            name = new TextCleaner().ClearText(name.Trim()),
-            text = new TextCleaner().ClearText(text.Trim())
+            name = new TextCleaner().ClearText(name),
+            text = new TextCleaner().ClearText(text)
         });
 
         Task.Run(async () =>
