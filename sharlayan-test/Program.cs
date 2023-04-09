@@ -312,8 +312,8 @@ void CutsceneScanner(MemoryHandler memoryHandler)
             {
                 lastCutsceneText = byteString;
                 HttpModule httpModule = new HttpModule();
-                httpModule.Post("CUTSCENE", "0044", "", lastCutsceneText, 1000);
-                Console.WriteLine("過場字串: " + lastCutsceneText.Replace('\r', ' ') + "\n過場位元組: " + ArrayToString(byteArray));
+                httpModule.Post("CUTSCENE", "0044", "", byteString, 1000);
+                Console.WriteLine("過場字串: " + byteString.Replace('\r', ' ') + "\n過場位元組: " + ArrayToString(byteArray));
             }
         }
     }
@@ -370,7 +370,7 @@ void RunTask(Action<MemoryHandler> action, MemoryHandler memoryHandler)
         {
             while (memoryHandler.Scanner.IsScanning) { SystemDelay(); }
             Task.Run(() => { action(memoryHandler); });
-            SystemDelay();
+            SystemDelay(1);
         }
         return;
     });
