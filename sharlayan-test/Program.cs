@@ -146,6 +146,18 @@ void AddSignature(List<Signature> signatures)
         }
     });
 
+    signatures.Add(new Signature
+    {
+        Key = "CUTSCENE_DETECTOR",
+        ASMSignature = true,
+        PointerPath = new List<long>
+        {
+            0,
+            0
+        },
+        Value = "488B0D********881D",
+    });
+
     return;
 }
 #endregion
@@ -281,6 +293,11 @@ void CutsceneScanner(MemoryHandler memoryHandler)
 {
     try
     {
+        var cutsceneDetector = (IntPtr)memoryHandler.Scanner.Locations["CUTSCENE_DETECTOR"];
+        int isCutscene = (int)memoryHandler.GetInt64(cutsceneDetector);
+
+        if (isCutscene == 1) return;
+
         byte[] byteArray = new byte[0];
         string byteString = "";
 
