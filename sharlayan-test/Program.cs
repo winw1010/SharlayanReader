@@ -26,7 +26,8 @@ string lastCutsceneText = "";
 #region Main Process
 StartApp();
 
-void StartApp() {
+void StartApp()
+{
     MainProcess();
     while (isRunning)
     {
@@ -184,7 +185,7 @@ async void ChatLogScanner(MemoryHandler memoryHandler)
         _previousArrayIndex = readResult.PreviousArrayIndex;
         _previousOffset = readResult.PreviousOffset;
 
-        if (chatLogEntries.Count > 0 && chatLogEntries[0].Code != "003D" && chatLogEntries[0].Message != lastChatLogText)
+        if (chatLogEntries.Count > 0 && chatLogEntries[0].Message != lastChatLogText)
         {
             lastChatLogText = chatLogEntries[0].Message;
 
@@ -192,6 +193,7 @@ async void ChatLogScanner(MemoryHandler memoryHandler)
             string[] splitLogmessage = logMessage.Split(':');
             string logName = splitLogmessage.Length > 1 ? splitLogmessage[0] : "";
             string logText = logName != "" ? logMessage.Replace(logName + ":", "") : logMessage;
+
             HttpModule httpModule = new HttpModule();
             await httpModule.Post("CHAT_LOG", chatLogEntries[0].Code, logName, logText);
 
