@@ -21,6 +21,8 @@ string lastSystemMessage = "";
 string lastChatLogText = "";
 string lastDialogText = "";
 string lastCutsceneText = "";
+
+List<string> dialogHistory = new List<string>();
 #endregion
 
 #region Main Process
@@ -193,11 +195,13 @@ async void ChatLogScanner(MemoryHandler memoryHandler)
             string[] splitLogmessage = logMessage.Split(':');
             string logName = splitLogmessage.Length > 1 ? splitLogmessage[0] : "";
             string logText = logName != "" ? logMessage.Replace(logName + ":", "") : logMessage;
-
-            HttpModule httpModule = new HttpModule();
-            await httpModule.Post("CHAT_LOG", chatLogEntries[0].Code, logName, logText);
-
             Console.WriteLine("對話紀錄字串: (" + chatLogEntries[0].Code + ")" + chatLogEntries[0].Message.Replace('\r', ' '));
+
+            if (chatLogEntries[0].Code != "003D" || checkHistory(logText))
+            {
+                HttpModule httpModule = new HttpModule();
+                await httpModule.Post("CHAT_LOG", chatLogEntries[0].Code, logName, logText);
+            }
         }
     }
     catch (Exception exception)
@@ -207,6 +211,33 @@ async void ChatLogScanner(MemoryHandler memoryHandler)
     }
 
     return;
+}
+
+bool checkHistory(string text)
+{
+    text = new TextCleaner().ClearText(text.Replace("\r", ""));
+    List<string> history = dialogHistory.ToList();
+
+    if (history.Count > 0)
+    {
+        int lastIndex = history.LastIndexOf(text);
+        return lastIndex < history.Count - 2;
+    }
+    else
+    {
+        return true;
+    }
+}
+
+void addHistory(string text)
+{
+    text = new TextCleaner().ClearText(text.Replace("\r", ""));
+    dialogHistory.Add(text);
+    if (dialogHistory.Count > 20)
+    {
+        int newCount = dialogHistory.Count / 2;
+        dialogHistory.RemoveRange(0, newCount);
+    }
 }
 #endregion
 
@@ -220,9 +251,11 @@ async void DialogScanner(MemoryHandler memoryHandler)
         if (result.Length > 0 && result[1] != lastDialogText)
         {
             lastDialogText = result[1];
+            addHistory(result[1]);
+            Console.WriteLine("對話框字串: " + result[0] + ": " + result[1].Replace('\r', ' '));
+
             HttpModule httpModule = new HttpModule();
             await httpModule.Post("DIALOG", "003D", result[0], result[1]);
-            Console.WriteLine("對話框字串: " + result[0] + ": " + result[1].Replace('\r', ' '));
         }
     }
     catch (Exception exception)
@@ -323,9 +356,10 @@ async void CutsceneScanner(MemoryHandler memoryHandler)
             if (byteString != lastCutsceneText)
             {
                 lastCutsceneText = byteString;
+                Console.WriteLine("過場字串: " + byteString.Replace('\r', ' ') + "\n過場位元組: " + ArrayToString(byteArray));
+
                 HttpModule httpModule = new HttpModule();
                 await httpModule.Post("CUTSCENE", "0044", "", byteString, 1000);
-                Console.WriteLine("過場字串: " + byteString.Replace('\r', ' ') + "\n過場位元組: " + ArrayToString(byteArray));
             }
         }
     }
