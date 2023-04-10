@@ -11,6 +11,7 @@ using System.Text.RegularExpressions;
 #endregion
 
 #region Global Variable
+bool isRunning = true;
 bool isScanning = false;
 
 int _previousArrayIndex = 0;
@@ -23,13 +24,22 @@ string lastCutsceneText = "";
 #endregion
 
 #region Main Process
-MainProcess();
+StartApp();
 
-void MainProcess()
+void StartApp() {
+    MainProcess();
+    while (isRunning)
+    {
+        ConsoleKeyInfo key = Console.ReadKey(true);
+        if (key.Key == ConsoleKey.Escape) { isRunning = false; isScanning = false; break; }
+    }
+}
+
+async void MainProcess()
 {
     try { Console.OutputEncoding = Encoding.UTF8; } catch (Exception) { }
 
-    while (true)
+    while (isRunning)
     {
         try
         {
@@ -40,11 +50,11 @@ void MainProcess()
                 isScanning = true;
 
                 WriteSystemMessage("讀取字幕中，請勿關閉本視窗");
-                RunTask(ChatLogScanner, memoryHandler);
-                RunTask(DialogScanner, memoryHandler);
-                RunTask(CutsceneScanner, memoryHandler);
+                RunScanner(ChatLogScanner, memoryHandler);
+                RunScanner(DialogScanner, memoryHandler);
+                RunScanner(CutsceneScanner, memoryHandler);
 
-                while (isScanning) { SystemDelay(1000); }
+                while (isScanning) { await TaskDelay(1000); }
             }
         }
         catch (Exception exception)
@@ -53,7 +63,7 @@ void MainProcess()
             isScanning = false;
         }
 
-        SystemDelay(1000);
+        await TaskDelay(1000);
     }
 }
 
@@ -163,7 +173,7 @@ void AddSignature(List<Signature> signatures)
 #endregion
 
 #region ChatLogScanner
-void ChatLogScanner(MemoryHandler memoryHandler)
+async void ChatLogScanner(MemoryHandler memoryHandler)
 {
     try
     {
@@ -183,7 +193,7 @@ void ChatLogScanner(MemoryHandler memoryHandler)
             string logName = splitLogmessage.Length > 1 ? splitLogmessage[0] : "";
             string logText = logName != "" ? logMessage.Replace(logName + ":", "") : logMessage;
             HttpModule httpModule = new HttpModule();
-            httpModule.Post("CHAT_LOG", chatLogEntries[0].Code, logName, logText);
+            await httpModule.Post("CHAT_LOG", chatLogEntries[0].Code, logName, logText);
 
             Console.WriteLine("對話紀錄字串: (" + chatLogEntries[0].Code + ")" + chatLogEntries[0].Message.Replace('\r', ' '));
         }
@@ -199,7 +209,7 @@ void ChatLogScanner(MemoryHandler memoryHandler)
 #endregion
 
 #region DialogScanner
-void DialogScanner(MemoryHandler memoryHandler)
+async void DialogScanner(MemoryHandler memoryHandler)
 {
     try
     {
@@ -209,7 +219,7 @@ void DialogScanner(MemoryHandler memoryHandler)
         {
             lastDialogText = result[1];
             HttpModule httpModule = new HttpModule();
-            httpModule.Post("DIALOG", "003D", result[0], result[1]);
+            await httpModule.Post("DIALOG", "003D", result[0], result[1]);
             Console.WriteLine("對話框字串: " + result[0] + ": " + result[1].Replace('\r', ' '));
         }
     }
@@ -289,7 +299,7 @@ int GetRealTextLength(ref byte[] byteArray)
 #endregion
 
 #region CutsceneScanner
-void CutsceneScanner(MemoryHandler memoryHandler)
+async void CutsceneScanner(MemoryHandler memoryHandler)
 {
     try
     {
@@ -312,7 +322,7 @@ void CutsceneScanner(MemoryHandler memoryHandler)
             {
                 lastCutsceneText = byteString;
                 HttpModule httpModule = new HttpModule();
-                httpModule.Post("CUTSCENE", "0044", "", byteString, 1000);
+                await httpModule.Post("CUTSCENE", "0044", "", byteString, 1000);
                 Console.WriteLine("過場字串: " + byteString.Replace('\r', ' ') + "\n過場位元組: " + ArrayToString(byteArray));
             }
         }
@@ -362,26 +372,21 @@ byte[] ClearArray(byte[] byteArray, int startIndex = 0)
 #endregion
 
 #region System Functions
-void RunTask(Action<MemoryHandler> action, MemoryHandler memoryHandler)
+async void RunScanner(Action<MemoryHandler> action, MemoryHandler memoryHandler)
 {
-    Task.Run(() =>
+    while (isScanning)
     {
-        while (isScanning)
-        {
-            while (memoryHandler.Scanner.IsScanning) { SystemDelay(); }
-            Task.Run(() => { action(memoryHandler); });
-            SystemDelay(1);
-        }
-        return;
-    });
-    return;
+        while (memoryHandler.Scanner.IsScanning) { await TaskDelay(); }
+        action(memoryHandler);
+        await TaskDelay(1);
+    }
 }
 
-void SystemDelay(int delayTIme = 10)
+async Task TaskDelay(int delayTIme = 10)
 {
     try
     {
-        Thread.Sleep(delayTIme);
+        await Task.Delay(delayTIme);
     }
     catch (Exception exception)
     {
@@ -470,7 +475,7 @@ class HttpModule
         }
     }
 
-    async public void Post(string type, string code, string name, string text, int sleepTime = 0, bool isRetry = false)
+    public async Task Post(string type, string code, string name, string text, int sleepTime = 0, bool isRetry = false)
     {
         string url = "http://" + Config?.IP + ":" + Config?.Port;
         string dataString = JsonConvert.SerializeObject(new
@@ -489,7 +494,7 @@ class HttpModule
         catch (Exception)
         {
             SetConfig();
-            if (!isRetry) { Post(type, code, name, text, sleepTime, true); }
+            if (!isRetry) { await Post(type, code, name, text, sleepTime, true); }
         }
 
         return;
