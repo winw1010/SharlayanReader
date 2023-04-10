@@ -470,7 +470,7 @@ class HttpModule
         }
     }
 
-    public void Post(string type, string code, string name, string text, int sleepTime = 0, bool isRetry = false)
+    async public void Post(string type, string code, string name, string text, int sleepTime = 0, bool isRetry = false)
     {
         string url = "http://" + Config?.IP + ":" + Config?.Port;
         string dataString = JsonConvert.SerializeObject(new
@@ -481,21 +481,16 @@ class HttpModule
             text = new TextCleaner().ClearText(text)
         });
 
-        Task.Run(async () =>
+        try
         {
-            try
-            {
-                Thread.Sleep(sleepTime);
-                await Client.PostAsync(url, new StringContent(dataString, Encoding.UTF8, "application/json"));
-            }
-            catch (Exception)
-            {
-                SetConfig();
-                if (!isRetry) { Post(type, code, name, text, sleepTime, true); }
-            }
-
-            return;
-        });
+            Thread.Sleep(sleepTime);
+            await Client.PostAsync(url, new StringContent(dataString, Encoding.UTF8, "application/json"));
+        }
+        catch (Exception)
+        {
+            SetConfig();
+            if (!isRetry) { Post(type, code, name, text, sleepTime, true); }
+        }
 
         return;
     }
