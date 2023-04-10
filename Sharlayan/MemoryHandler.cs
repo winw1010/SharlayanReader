@@ -231,7 +231,7 @@ namespace Sharlayan {
         public ulong GetUInt64(IntPtr address, long offset = 0) {
             byte[] value = new byte[8];
             this.Peek(new IntPtr(address.ToInt64() + offset), value);
-            return SharlayanBitConverter.TryToUInt32(value, 0);
+            return SharlayanBitConverter.TryToUInt64(value, 0);
         }
 
         public ulong GetUInt64FromBytes(byte[] source, int index = 0) {

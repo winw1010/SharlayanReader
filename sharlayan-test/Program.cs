@@ -213,6 +213,17 @@ async void ChatLogScanner(MemoryHandler memoryHandler)
     return;
 }
 
+void addHistory(string text)
+{
+    text = new TextCleaner().ClearText(text.Replace("\r", ""));
+    dialogHistory.Add(text);
+    if (dialogHistory.Count > 20)
+    {
+        int newCount = dialogHistory.Count / 2;
+        dialogHistory.RemoveRange(0, newCount);
+    }
+}
+
 bool checkHistory(string text)
 {
     text = new TextCleaner().ClearText(text.Replace("\r", ""));
@@ -226,17 +237,6 @@ bool checkHistory(string text)
     else
     {
         return true;
-    }
-}
-
-void addHistory(string text)
-{
-    text = new TextCleaner().ClearText(text.Replace("\r", ""));
-    dialogHistory.Add(text);
-    if (dialogHistory.Count > 20)
-    {
-        int newCount = dialogHistory.Count / 2;
-        dialogHistory.RemoveRange(0, newCount);
     }
 }
 #endregion
@@ -275,7 +275,7 @@ string[] GetDialogPanel(MemoryHandler memoryHandler)
     var dialogPanelNameLengthPointer = IntPtr.Subtract(dialogPanelNamePointer, 18);
 
     var dialogPanelTextPointer = (IntPtr)memoryHandler.Scanner.Locations["PANEL_TEXT"];
-    var dialogPanelText = new IntPtr(memoryHandler.GetInt64(dialogPanelTextPointer));
+    var dialogPanelText = new IntPtr((long)memoryHandler.GetUInt64(dialogPanelTextPointer));
 
     var dialogPanelTextLegthPointer = IntPtr.Add(dialogPanelTextPointer, 16);
 
