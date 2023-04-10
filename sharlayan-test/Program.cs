@@ -380,11 +380,11 @@ async void RunScanner(Action<MemoryHandler> action, MemoryHandler memoryHandler)
     {
         while (memoryHandler.Scanner.IsScanning) { await TaskDelay(); }
         action(memoryHandler);
-        await TaskDelay(1);
+        await TaskDelay();
     }
 }
 
-async Task TaskDelay(int delayTIme = 10)
+async Task TaskDelay(int delayTIme = 20)
 {
     try
     {
