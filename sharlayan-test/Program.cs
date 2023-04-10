@@ -390,7 +390,7 @@ async Task TaskDelay(int delayTIme = 10)
     }
     catch (Exception exception)
     {
-        WriteSystemMessage("SystemDelay: " + exception.Message);
+        WriteSystemMessage("TaskDelay: " + exception.Message);
     }
 }
 
