@@ -89,7 +89,6 @@ MemoryHandler? GetGameProcess()
         };
 
         MemoryHandler memoryHandler = SharlayanMemoryManager.Instance.AddHandler(configuration);
-        //memoryHandler.Scanner.Locations.Clear();
 
         List<Signature> signatures = new List<Signature>();
         AddSignature(signatures);
