@@ -178,20 +178,26 @@ async void ChatLogScanner(MemoryHandler memoryHandler)
         _previousArrayIndex = readResult.PreviousArrayIndex;
         _previousOffset = readResult.PreviousOffset;
 
-        if (chatLogEntries.Count > 0 && chatLogEntries[0].Message != lastChatLogText)
+        if (chatLogEntries.Count > 0) 
         {
-            lastChatLogText = chatLogEntries[0].Message;
-
-            string logMessage = chatLogEntries[0].Message;
-            string[] splitLogmessage = logMessage.Split(':');
-            string logName = splitLogmessage.Length > 1 ? splitLogmessage[0] : "";
-            string logText = logName != "" ? logMessage.Replace(logName + ":", "") : logMessage;
-            Console.WriteLine("對話紀錄字串: (" + chatLogEntries[0].Code + ")" + chatLogEntries[0].Message.Replace('\r', ' '));
-
-            if (chatLogEntries[0].Code != "003D" || checkHistory(logText))
+            for (int i = 0; i < chatLogEntries.Count; i++) 
             {
-                HttpModule httpModule = new HttpModule();
-                await httpModule.Post("CHAT_LOG", chatLogEntries[0].Code, logName, logText);
+                if (chatLogEntries[i].Message != lastChatLogText)
+                {
+                    lastChatLogText = chatLogEntries[i].Message;
+
+                    string chatLogText = chatLogEntries[i].Message;
+                    string[] splitLogmessage = chatLogText.Split(':');
+                    string logName = splitLogmessage.Length > 1 ? splitLogmessage[0] : "";
+                    string logText = logName != "" ? chatLogText.Replace(logName + ":", "") : chatLogText;
+                    Console.WriteLine("對話紀錄字串: (" + chatLogEntries[i].Code + ")" + chatLogEntries[i].Message.Replace('\r', ' '));
+
+                    if (chatLogEntries[i].Code != "003D" || checkHistory(logText))
+                    {
+                        HttpModule httpModule = new HttpModule();
+                        await httpModule.Post("CHAT_LOG", chatLogEntries[i].Code, logName, logText);
+                    }
+                }
             }
         }
     }
