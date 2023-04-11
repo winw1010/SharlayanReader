@@ -54,9 +54,7 @@ async void MainProcess()
                 isScanning = true;
 
                 WriteSystemMessage("讀取字幕中，請勿關閉本視窗");
-                RunScanner(ChatLogScanner, memoryHandler);
-                RunScanner(DialogScanner, memoryHandler);
-                RunScanner(CutsceneScanner, memoryHandler);
+                RunScanner(memoryHandler);
 
                 while (isScanning) { await TaskDelay(1000); }
             }
@@ -419,12 +417,14 @@ byte[] ClearArray(byte[] byteArray, int startIndex = 0)
 #endregion
 
 #region System Functions
-async void RunScanner(Action<MemoryHandler> action, MemoryHandler memoryHandler)
+async void RunScanner(MemoryHandler memoryHandler)
 {
     while (isScanning)
     {
         while (memoryHandler.Scanner.IsScanning) { await TaskDelay(); }
-        action(memoryHandler);
+        ChatLogScanner(memoryHandler);
+        DialogScanner(memoryHandler);
+        CutsceneScanner(memoryHandler);
         await TaskDelay();
     }
 }
