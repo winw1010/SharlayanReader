@@ -309,12 +309,6 @@ string[] GetDialogPanel(MemoryHandler memoryHandler)
 
         result = new string[] { ByteToString(npcNameBytes), ByteToString(textBytes) };
     }
-    else if (textLength <= 1 && nameLength > 1)
-    {
-        byte[] npcNameBytes = memoryHandler.GetByteArray(dialogPanelNamePointer, nameLength);
-        nameLength = GetRealTextLength(ref npcNameBytes);
-        WriteSystemMessage("GetDialogPanel: textLength <= 1, NPC name: " + ByteToString(npcNameBytes));
-    }
 
     return result;
 }
