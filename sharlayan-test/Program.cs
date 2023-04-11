@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Sharlayan;
 using Sharlayan.Core;
+using Sharlayan.Enums;
 using Sharlayan.Models;
 using Sharlayan.Models.ReadResults;
 using System.Diagnostics;
@@ -78,12 +79,17 @@ MemoryHandler? GetGameProcess()
         {
             ProcessModel = new ProcessModel
             {
-                Process = Process.GetProcessesByName("ffxiv_dx11").FirstOrDefault(),
+                Process = Process.GetProcessesByName("ffxiv_dx11").FirstOrDefault()
             },
+            GameLanguage = GameLanguage.English,
+            GameRegion = GameRegion.Global,
+            PatchVersion = "latest",
+            UseLocalCache = true,
+            ScanAllRegions = false
         };
 
-        MemoryHandler memoryHandler = new MemoryHandler(configuration);
-        memoryHandler.Scanner.Locations.Clear();
+        MemoryHandler memoryHandler = SharlayanMemoryManager.Instance.AddHandler(configuration);
+        //memoryHandler.Scanner.Locations.Clear();
 
         List<Signature> signatures = new List<Signature>();
         AddSignature(signatures);
@@ -101,6 +107,7 @@ MemoryHandler? GetGameProcess()
 
 void AddSignature(List<Signature> signatures)
 {
+    /*
     signatures.Add(new Signature
     {
         Key = "CHATLOG",
@@ -114,6 +121,7 @@ void AddSignature(List<Signature> signatures)
         },
         Value = "488941104488492C4C8949244C89491C4584C07412488B4218488905********48890D",
     });
+    */
 
     signatures.Add(new Signature
     {
@@ -275,7 +283,7 @@ string[] GetDialogPanel(MemoryHandler memoryHandler)
     var dialogPanelNameLengthPointer = IntPtr.Subtract(dialogPanelNamePointer, 18);
 
     var dialogPanelTextPointer = (IntPtr)memoryHandler.Scanner.Locations["PANEL_TEXT"];
-    var dialogPanelText = new IntPtr((long)memoryHandler.GetUInt64(dialogPanelTextPointer));
+    var dialogPanelTextPointer2 = new IntPtr((long)memoryHandler.GetUInt64(dialogPanelTextPointer));
 
     var dialogPanelTextLegthPointer = IntPtr.Add(dialogPanelTextPointer, 16);
 
@@ -291,7 +299,7 @@ string[] GetDialogPanel(MemoryHandler memoryHandler)
             nameLength = 128;
 
         byte[] npcNameBytes = memoryHandler.GetByteArray(dialogPanelNamePointer, nameLength);
-        byte[] textBytes = memoryHandler.GetByteArray(dialogPanelText, textLength);
+        byte[] textBytes = memoryHandler.GetByteArray(dialogPanelTextPointer2, textLength);
 
         nameLength = GetRealTextLength(ref npcNameBytes);
         textLength = GetRealTextLength(ref textBytes);
