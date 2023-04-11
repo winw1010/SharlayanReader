@@ -19,9 +19,9 @@ int _previousArrayIndex = 0;
 int _previousOffset = 0;
 
 string lastSystemMessage = "";
-string lastChatLogText = "";
-string lastDialogText = "";
-string lastCutsceneText = "";
+string lastChatLogString = "";
+string lastDialogString = "";
+string lastCutsceneString = "";
 
 List<string> dialogHistory = new List<string>();
 #endregion
@@ -178,24 +178,26 @@ async void ChatLogScanner(MemoryHandler memoryHandler)
         _previousArrayIndex = readResult.PreviousArrayIndex;
         _previousOffset = readResult.PreviousOffset;
 
-        if (chatLogEntries.Count > 0) 
+        if (chatLogEntries.Count > 0)
         {
-            for (int i = 0; i < chatLogEntries.Count; i++) 
+            for (int i = 0; i < chatLogEntries.Count; i++)
             {
-                if (chatLogEntries[i].Message != lastChatLogText)
-                {
-                    lastChatLogText = chatLogEntries[i].Message;
+                ChatLogItem chatLogItem = chatLogEntries[i];
 
-                    string chatLogText = chatLogEntries[i].Message;
+                if (chatLogItem.Message != lastChatLogString)
+                {
+                    lastChatLogString = chatLogItem.Message;
+
+                    string chatLogText = chatLogItem.Message;
                     string[] splitLogmessage = chatLogText.Split(':');
                     string logName = splitLogmessage.Length > 1 ? splitLogmessage[0] : "";
                     string logText = logName != "" ? chatLogText.Replace(logName + ":", "") : chatLogText;
-                    Console.WriteLine("對話紀錄字串: (" + chatLogEntries[i].Code + ")" + chatLogEntries[i].Message.Replace('\r', ' '));
+                    Console.WriteLine("對話紀錄字串: (" + chatLogItem.Code + ")" + chatLogItem.Message.Replace('\r', ' '));
 
-                    if (chatLogEntries[i].Code != "003D" || checkHistory(logText))
+                    if (chatLogItem.Code != "003D" || checkHistory(logText))
                     {
                         HttpModule httpModule = new HttpModule();
-                        await httpModule.Post("CHAT_LOG", chatLogEntries[i].Code, logName, logText);
+                        await httpModule.Post("CHAT_LOG", chatLogItem.Code, logName, logText);
                     }
                 }
             }
@@ -245,9 +247,9 @@ async void DialogScanner(MemoryHandler memoryHandler)
     {
         string[] result = GetDialogPanel(memoryHandler);
 
-        if (result.Length > 0 && result[1] != lastDialogText)
+        if (result.Length > 0 && result[1] != lastDialogString)
         {
-            lastDialogText = result[1];
+            lastDialogString = result[1];
             addHistory(result[1]);
             Console.WriteLine("對話框字串: " + result[0] + ": " + result[1].Replace('\r', ' '));
 
@@ -350,9 +352,9 @@ async void CutsceneScanner(MemoryHandler memoryHandler)
             byteArray = ClearArray(byteArray);
             byteString = ByteToString(byteArray);
 
-            if (byteString != lastCutsceneText)
+            if (byteString != lastCutsceneString)
             {
-                lastCutsceneText = byteString;
+                lastCutsceneString = byteString;
                 Console.WriteLine("過場字串: " + byteString.Replace('\r', ' ') + "\n過場位元組: " + ArrayToString(byteArray));
 
                 HttpModule httpModule = new HttpModule();
