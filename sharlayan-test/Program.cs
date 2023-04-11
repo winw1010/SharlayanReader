@@ -107,22 +107,6 @@ MemoryHandler? GetGameProcess()
 
 void AddSignature(List<Signature> signatures)
 {
-    /*
-    signatures.Add(new Signature
-    {
-        Key = "CHATLOG",
-        ASMSignature = true,
-        PointerPath = new List<long>
-        {
-            0,
-            0,
-            64,
-            908
-        },
-        Value = "488941104488492C4C8949244C89491C4584C07412488B4218488905********48890D",
-    });
-    */
-
     signatures.Add(new Signature
     {
         Key = "PANEL_NAME",
@@ -384,7 +368,7 @@ async void CutsceneScanner(MemoryHandler memoryHandler)
 #region Byte Functions
 string ByteToString(byte[] byteArray)
 {
-    return Encoding.GetEncoding("utf-8").GetString(byteArray);
+    return Encoding.UTF8.GetString(byteArray);
 }
 
 string ArrayToString(byte[] byteArray)
