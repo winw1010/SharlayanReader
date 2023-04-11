@@ -365,6 +365,18 @@ async void CutsceneScanner(MemoryHandler memoryHandler)
 #endregion
 
 #region Byte Functions
+bool CompareArray(byte[] byteArray1, byte[] byteArray2)
+{
+    if (byteArray1.Length != byteArray2.Length) { return false; }
+
+    for (int i = 0; i < byteArray1.Length; i++)
+    {
+        if (byteArray1[i] != byteArray2[i]) { return false; }
+    }
+
+    return true;
+}
+
 string ByteToString(byte[] byteArray)
 {
     return Encoding.UTF8.GetString(byteArray);
