@@ -175,7 +175,7 @@ void ChatLogScanner(MemoryHandler memoryHandler)
 
                     if (chatLogItem.Code != "003D" || checkHistory(logText))
                     {
-                        new HttpModule().Post("CHAT_LOG", chatLogItem.Code, logName, logText);
+                        new HttpModule().PostAsync("CHAT_LOG", chatLogItem.Code, logName, logText);
                     }
                 }
             }
@@ -192,7 +192,7 @@ void ChatLogScanner(MemoryHandler memoryHandler)
 
 void addHistory(string text)
 {
-    text = new TextCleaner().ClearText(text.Replace("\r", ""));
+    text = new TextModule().ClearText(text).Replace("\r", "");
     dialogHistory.Add(text);
     if (dialogHistory.Count > 20)
     {
@@ -203,7 +203,7 @@ void addHistory(string text)
 
 bool checkHistory(string text)
 {
-    text = new TextCleaner().ClearText(text.Replace("\r", ""));
+    text = new TextModule().ClearText(text).Replace("\r", "");
     List<string> history = dialogHistory.ToList();
 
     if (history.Count > 0)
@@ -230,7 +230,7 @@ void DialogScanner(MemoryHandler memoryHandler)
             lastDialogString = result[1];
             addHistory(result[1]);
             Console.WriteLine("對話框字串: " + result[0] + ": " + result[1].Replace('\r', ' '));
-            new HttpModule().Post("DIALOG", "003D", result[0], result[1]);
+            new HttpModule().PostAsync("DIALOG", "003D", result[0], result[1]);
         }
     }
     catch (Exception exception)
@@ -332,7 +332,7 @@ void CutsceneScanner(MemoryHandler memoryHandler)
             {
                 lastCutsceneString = byteString;
                 Console.WriteLine("過場字串: " + byteString.Replace('\r', ' ') + "\n過場位元組: " + ArrayToString(byteArray));
-                new HttpModule().Post("CUTSCENE", "0044", "", byteString, 1000);
+                new HttpModule().PostAsync("CUTSCENE", "0044", "", byteString, 1000);
             }
         }
     }
@@ -383,9 +383,9 @@ string ArrayToString(byte[] byteArray)
 byte[] ClearArray(byte[] byteArray, int startIndex = 0)
 {
     List<byte> byteList = new List<byte>();
-    int firstZeroIndex = byteArray.ToList().IndexOf(0x00, startIndex);
+    int nullIndex = byteArray.ToList().IndexOf(0x00, startIndex);
 
-    for (int i = startIndex; i < firstZeroIndex; i++)
+    for (int i = startIndex; i < nullIndex; i++)
     {
         byteList.Add(byteArray[i]);
     }
@@ -428,7 +428,7 @@ void WriteSystemMessage(string message)
 #endregion
 
 #region Class Definition
-class TextCleaner
+class TextModule
 {
     private static readonly Regex ArrowRegex = new Regex(@"", RegexOptions.Compiled);
     private static readonly Regex HQRegex = new Regex(@"", RegexOptions.Compiled);
@@ -463,9 +463,10 @@ class TextCleaner
 
 class HttpModule
 {
+    private readonly HttpClient Client = new HttpClient();
+    private readonly string ConfigPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), @"Tataru Helper Node\setting\config.json");
+
     private static SocketConfig? Config = null;
-    private HttpClient Client = new HttpClient();
-    private string ConfigPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), @"Tataru Helper Node\setting\config.json");
 
     public HttpModule()
     {
@@ -498,15 +499,15 @@ class HttpModule
         }
     }
 
-    public async void Post(string type, string code, string name, string text, int sleepTime = 0, bool isRetry = false)
+    public async void PostAsync(string type, string code, string name, string text, int sleepTime = 0, bool isRetry = false)
     {
-        string url = "http://" + Config?.IP + ":" + Config?.Port;
+        string url = "http://" + Config?.host + ":" + Config?.port;
         string dataString = JsonConvert.SerializeObject(new
         {
             type,
             code,
-            name = new TextCleaner().ClearText(name),
-            text = new TextCleaner().ClearText(text)
+            name = new TextModule().ClearText(name),
+            text = new TextModule().ClearText(text)
         });
 
         try
@@ -517,7 +518,7 @@ class HttpModule
         catch (Exception)
         {
             SetConfig();
-            if (!isRetry) { Post(type, code, name, text, sleepTime, true); }
+            if (!isRetry) { PostAsync(type, code, name, text, sleepTime, true); }
         }
 
         return;
@@ -525,8 +526,8 @@ class HttpModule
 
     private class SocketConfig
     {
-        public string IP = "localhost";
-        public int Port = 8898;
+        public string host = "localhost";
+        public int port = 8898;
     }
 }
 #endregion
