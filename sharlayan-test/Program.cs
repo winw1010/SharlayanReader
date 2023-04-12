@@ -12,7 +12,6 @@ using System.Text.RegularExpressions;
 #endregion
 
 #region Global Variable
-bool isRunning = true;
 bool isScanning = false;
 
 int _previousArrayIndex = 0;
@@ -27,50 +26,34 @@ List<string> dialogHistory = new List<string>();
 #endregion
 
 #region Main Process
-StartApp();
+MainProcess();
 
-void StartApp()
-{
-    MainProcess();
-    while (isRunning)
-    {
-        ConsoleKeyInfo key = Console.ReadKey(true);
-        if (key.Key == ConsoleKey.Escape) { isRunning = false; isScanning = false; break; }
-    }
-}
-
-async void MainProcess()
+void MainProcess()
 {
     try { Console.OutputEncoding = Encoding.UTF8; } catch (Exception) { }
 
-    while (isRunning)
+    while (true)
     {
         try
         {
-            MemoryHandler? memoryHandler = GetGameProcess();
-
-            if (memoryHandler != null)
+            MemoryHandler memoryHandler = GetGameProcess();
+            isScanning = true;
+            WriteSystemMessage("讀取字幕中，請勿關閉本視窗");
+            while (isScanning)
             {
-                isScanning = true;
-                WriteSystemMessage("讀取字幕中，請勿關閉本視窗");
-                while (isScanning)
-                {
-                    RunScanner(memoryHandler);
-                    await TaskDelay();
-                }
+                RunScanner(memoryHandler);
+                TaskDelay();
             }
         }
         catch (Exception exception)
         {
-            WriteSystemMessage("MainProcess: " + exception.Message);
-            isScanning = false;
+            WriteSystemMessage(exception.Message);
         }
-
-        await TaskDelay(1000);
+        TaskDelay(1000);
     }
 }
 
-MemoryHandler? GetGameProcess()
+MemoryHandler GetGameProcess()
 {
     try
     {
@@ -97,9 +80,7 @@ MemoryHandler? GetGameProcess()
     }
     catch (Exception exception)
     {
-        WriteSystemMessage("等待FFXIV啟動...(" + exception.Message + ")");
-        isScanning = false;
-        return null;
+        throw new Exception("等待FFXIV啟動...(" + exception.Message + ")");
     }
 }
 
@@ -166,12 +147,11 @@ void AddSignature(List<Signature> signatures)
 #endregion
 
 #region ChatLogScanner
-async void ChatLogScanner(MemoryHandler memoryHandler)
+void ChatLogScanner(MemoryHandler memoryHandler)
 {
     try
     {
         ChatLogResult readResult = memoryHandler.Reader.GetChatLog(_previousArrayIndex, _previousOffset);
-
         List<ChatLogItem> chatLogEntries = readResult.ChatLogItems.ToList();
 
         _previousArrayIndex = readResult.PreviousArrayIndex;
@@ -195,8 +175,7 @@ async void ChatLogScanner(MemoryHandler memoryHandler)
 
                     if (chatLogItem.Code != "003D" || checkHistory(logText))
                     {
-                        HttpModule httpModule = new HttpModule();
-                        await httpModule.Post("CHAT_LOG", chatLogItem.Code, logName, logText);
+                        new HttpModule().Post("CHAT_LOG", chatLogItem.Code, logName, logText);
                     }
                 }
             }
@@ -240,7 +219,7 @@ bool checkHistory(string text)
 #endregion
 
 #region DialogScanner
-async void DialogScanner(MemoryHandler memoryHandler)
+void DialogScanner(MemoryHandler memoryHandler)
 {
     try
     {
@@ -251,9 +230,7 @@ async void DialogScanner(MemoryHandler memoryHandler)
             lastDialogString = result[1];
             addHistory(result[1]);
             Console.WriteLine("對話框字串: " + result[0] + ": " + result[1].Replace('\r', ' '));
-
-            HttpModule httpModule = new HttpModule();
-            await httpModule.Post("DIALOG", "003D", result[0], result[1]);
+            new HttpModule().Post("DIALOG", "003D", result[0], result[1]);
         }
     }
     catch (Exception exception)
@@ -332,7 +309,7 @@ int GetRealTextLength(ref byte[] byteArray)
 #endregion
 
 #region CutsceneScanner
-async void CutsceneScanner(MemoryHandler memoryHandler)
+void CutsceneScanner(MemoryHandler memoryHandler)
 {
     try
     {
@@ -355,9 +332,7 @@ async void CutsceneScanner(MemoryHandler memoryHandler)
             {
                 lastCutsceneString = byteString;
                 Console.WriteLine("過場字串: " + byteString.Replace('\r', ' ') + "\n過場位元組: " + ArrayToString(byteArray));
-
-                HttpModule httpModule = new HttpModule();
-                await httpModule.Post("CUTSCENE", "0044", "", byteString, 1000);
+                new HttpModule().Post("CUTSCENE", "0044", "", byteString, 1000);
             }
         }
     }
@@ -372,6 +347,7 @@ async void CutsceneScanner(MemoryHandler memoryHandler)
 #endregion
 
 #region Byte Functions
+/*
 bool CompareArray(byte[] byteArray1, byte[] byteArray2)
 {
     if (byteArray1.Length != byteArray2.Length) { return false; }
@@ -383,6 +359,7 @@ bool CompareArray(byte[] byteArray1, byte[] byteArray2)
 
     return true;
 }
+*/
 
 string ByteToString(byte[] byteArray)
 {
@@ -428,11 +405,11 @@ void RunScanner(MemoryHandler memoryHandler)
     }
 }
 
-async Task TaskDelay(int delayTIme = 20)
+void TaskDelay(int delayTIme = 20)
 {
     try
     {
-        await Task.Delay(delayTIme);
+        Task.Delay(delayTIme).Wait();
     }
     catch (Exception exception)
     {
@@ -521,7 +498,7 @@ class HttpModule
         }
     }
 
-    public async Task Post(string type, string code, string name, string text, int sleepTime = 0, bool isRetry = false)
+    public async void Post(string type, string code, string name, string text, int sleepTime = 0, bool isRetry = false)
     {
         string url = "http://" + Config?.IP + ":" + Config?.Port;
         string dataString = JsonConvert.SerializeObject(new
@@ -534,13 +511,13 @@ class HttpModule
 
         try
         {
-            Thread.Sleep(sleepTime);
+            await Task.Delay(sleepTime);
             await Client.PostAsync(url, new StringContent(dataString, Encoding.UTF8, "application/json"));
         }
         catch (Exception)
         {
             SetConfig();
-            if (!isRetry) { await Post(type, code, name, text, sleepTime, true); }
+            if (!isRetry) { Post(type, code, name, text, sleepTime, true); }
         }
 
         return;
