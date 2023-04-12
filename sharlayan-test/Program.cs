@@ -466,12 +466,14 @@ class HttpModule
     private readonly HttpClient Client = new HttpClient();
     private readonly string ConfigPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), @"Tataru Helper Node\setting\config.json");
 
-    private static SocketConfig? Config = null;
+    private static bool IsFirst = true;
+    private static SocketConfig Config = new SocketConfig();
 
     public HttpModule()
     {
-        if (Config == null)
+        if (IsFirst)
         {
+            IsFirst = false;
             SetConfig();
         }
     }
@@ -480,9 +482,9 @@ class HttpModule
     {
         try
         {
-            string json = System.IO.File.ReadAllText(ConfigPath);
+            string json = File.ReadAllText(ConfigPath);
             JObject? data = JObject.Parse(json);
-            SocketConfig? config = data?["server"]?.ToObject<SocketConfig>();
+            SocketConfig? config = data?["server"] ?.ToObject<SocketConfig>();
 
             if (config != null)
             {
@@ -490,18 +492,18 @@ class HttpModule
             }
             else
             {
-                Config = new SocketConfig();
+                throw new Exception("Null Object");
             }
         }
-        catch (Exception)
+        catch (Exception exception)
         {
-            Config = new SocketConfig();
+            Console.WriteLine(exception.Message);
         }
     }
 
     public async void PostAsync(string type, string code, string name, string text, int sleepTime = 0, bool isRetry = false)
     {
-        string url = "http://" + Config?.host + ":" + Config?.port;
+        string url = "http://" + Config.host + ":" + Config.port;
         string dataString = JsonConvert.SerializeObject(new
         {
             type,
