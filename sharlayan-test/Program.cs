@@ -1,14 +1,17 @@
 ﻿#region Using
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using NLog;
 using Sharlayan;
 using Sharlayan.Core;
 using Sharlayan.Enums;
+using Sharlayan.Extensions;
 using Sharlayan.Models;
 using Sharlayan.Models.ReadResults;
 using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Web;
 #endregion
 
 #region Global Variable
@@ -173,7 +176,7 @@ void ChatLogScanner(MemoryHandler memoryHandler)
                     string logText = logName != "" ? chatLogText.Replace(logName + ":", "") : chatLogText;
                     Console.WriteLine("對話紀錄字串: (" + chatLogItem.Code + ")" + chatLogItem.Message.Replace('\r', ' '));
 
-                    if (chatLogItem.Code != "003D" || checkHistory(logText))
+                    if (chatLogItem.Code != "003D" || checkHistory(chatLogItem.Code, logText))
                     {
                         new HttpModule().PostAsync("CHAT_LOG", chatLogItem.Code, logName, logText);
                     }
@@ -192,7 +195,7 @@ void ChatLogScanner(MemoryHandler memoryHandler)
 
 void addHistory(string text)
 {
-    text = new TextModule().ClearText(text).Replace("\r", "");
+    text = ChatCleaner.ProcessFullLine("003D", text).Replace("\r", "");
     dialogHistory.Add(text);
     if (dialogHistory.Count > 20)
     {
@@ -201,9 +204,9 @@ void addHistory(string text)
     }
 }
 
-bool checkHistory(string text)
+bool checkHistory(string code, string text)
 {
-    text = new TextModule().ClearText(text).Replace("\r", "");
+    text = ChatCleaner.ProcessFullLine(code, text).Replace("\r", "");
     List<string> history = dialogHistory.ToList();
 
     if (history.Count > 0)
@@ -428,6 +431,7 @@ void WriteSystemMessage(string message)
 #endregion
 
 #region Class Definition
+/*
 class TextModule
 {
     private static readonly Regex ArrowRegex = new Regex(@"", RegexOptions.Compiled);
@@ -460,6 +464,188 @@ class TextModule
         return text.Trim();
     }
 }
+*/
+
+class ChatCleaner
+{
+    private const RegexOptions DefaultOptions = RegexOptions.Compiled | RegexOptions.ExplicitCapture;
+
+    //private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+
+    private static readonly Regex PlayerChatCodesRegex = new Regex(@"^00(0[A-F]|1[0-9A-F])$", DefaultOptions);
+
+    private static readonly Regex PlayerRegEx = new Regex(@"(?<full>\[[A-Z0-9]{10}(?<first>[A-Z0-9]{3,})20(?<last>[A-Z0-9]{3,})\](?<short>[\w']+\.? [\w']+\.?)\[[A-Z0-9]{12}\])", DefaultOptions);
+
+    private static readonly Regex ArrowRegex = new Regex(@"", RegexOptions.Compiled);
+
+    private static readonly Regex HQRegex = new Regex(@"", RegexOptions.Compiled);
+
+    //private static readonly Regex NewLineRegex = new Regex(@"[\r\n]+", RegexOptions.Compiled);
+
+    private static readonly Regex NoPrintingCharactersRegex = new Regex(@"[\x00-\x0C\x0E-\x1F]+", RegexOptions.Compiled);
+
+    private static readonly Regex SpecialPurposeUnicodeRegex = new Regex(@"[\uE000-\uF8FF]", RegexOptions.Compiled);
+
+    private static readonly Regex SpecialReplacementRegex = new Regex(@"[�]", RegexOptions.Compiled);
+
+    public static string ProcessFullLine(string code, string text)
+    {
+        byte[] bytes = Encoding.UTF8.GetBytes(text);
+        var line = HttpUtility.HtmlDecode(Encoding.UTF8.GetString(bytes.ToArray())).Replace("  ", " ");
+        try
+        {
+            List<byte> autoTranslateList = new List<byte>(bytes.Length);
+
+            List<byte> newList = new List<byte>();
+
+            for (var x = 0; x < bytes.Count(); x++)
+            {
+                switch (bytes[x])
+                {
+                    case 2:
+                        // special in-game replacements/wrappers
+                        // 2 46 5 7 242 2 210 3
+                        // 2 29 1 3
+                        // remove them
+                        var length = bytes[x + 2];
+                        var limit = length - 1;
+                        if (length > 1)
+                        {
+                            x = x + 3;
+
+                            ///////////////////////////
+                            autoTranslateList.Add(Convert.ToByte('['));
+                            byte[] translated = new byte[limit];
+                            Buffer.BlockCopy(bytes, x, translated, 0, limit);
+                            foreach (var b in translated)
+                            {
+                                autoTranslateList.AddRange(Encoding.UTF8.GetBytes(b.ToString("X2")));
+                            }
+
+                            autoTranslateList.Add(Convert.ToByte(']'));
+
+                            var bCheckStr = Encoding.UTF8.GetString(autoTranslateList.ToArray());
+
+                            if (bCheckStr != null && bCheckStr.Length > 0)
+                            {
+                                if (bCheckStr.Equals("[59]"))
+                                {
+                                    newList.Add(0x40);
+                                }
+
+                                /*
+                                if (Utilities.AutoTranslate.EnDict.TryGetValue(bCheckStr.Replace("[0", "[").ToLower(), out var AutoTranslateVal))
+                                {
+                                    newList.AddRange(Encoding.UTF8.GetBytes(AutoTranslateVal));
+                                }
+                                */
+                            }
+                            autoTranslateList.Clear();
+                            ///////////////////////////
+
+                            x += limit;
+                        }
+                        else
+                        {
+                            x = x + 4;
+                            newList.Add(32);
+                            newList.Add(bytes[x]);
+                        }
+
+                        break;
+
+                    // unit separator
+                    case 31:
+                        // TODO: this breaks in some areas like NOVICE chat
+                        // if (PlayerChatCodesRegex.IsMatch(code)) {
+                        //     newList.Add(58);
+                        // }
+                        // else {
+                        //     newList.Add(31);
+                        // }
+                        newList.Add(58);
+                        if (PlayerChatCodesRegex.IsMatch(code))
+                        {
+                            newList.Add(32);
+                        }
+                        break;
+                    default:
+                        newList.Add(bytes[x]);
+                        break;
+                }
+            }
+
+            var cleaned = HttpUtility.HtmlDecode(Encoding.UTF8.GetString(newList.ToArray())).Replace("  ", " ");
+
+            newList.Clear();
+
+            // replace right arrow in chat (parsing)
+            cleaned = ArrowRegex.Replace(cleaned, "⇒");
+            // replace HQ symbol
+            cleaned = HQRegex.Replace(cleaned, "[HQ]");
+            // replace all Extended special purpose unicode with empty string
+            cleaned = SpecialPurposeUnicodeRegex.Replace(cleaned, string.Empty);
+            // cleanup special replacement character bytes: 239 191 189
+            cleaned = SpecialReplacementRegex.Replace(cleaned, string.Empty);
+            // remove new lines
+            //cleaned = NewLineRegex.Replace(cleaned, string.Empty);
+            // remove characters 0-31
+            cleaned = NoPrintingCharactersRegex.Replace(cleaned, string.Empty);
+
+            line = cleaned;
+        }
+        catch (Exception ex)
+        {
+            //MemoryHandler.Instance.RaiseException(Logger, ex, true);
+            Console.WriteLine(ex.Message);
+        }
+
+        return ProcessName(line);
+    }
+
+    private static string ProcessName(string cleaned)
+    {
+        var line = cleaned;
+        try
+        {
+            // cleanup name if using other settings
+            Match playerMatch = PlayerRegEx.Match(line);
+            if (playerMatch.Success)
+            {
+                var fullName = playerMatch.Groups[1].Value;
+                var firstName = playerMatch.Groups[2].Value.FromHex();
+                var lastName = playerMatch.Groups[3].Value.FromHex();
+                var player = $"{firstName} {lastName}";
+
+                // remove double placement
+                cleaned = line.Replace($"{fullName}:{fullName}", "•name•");
+
+                // remove single placement
+                cleaned = cleaned.Replace(fullName, "•name•");
+                switch (Regex.IsMatch(cleaned, @"^([Vv]ous|[Dd]u|[Yy]ou)"))
+                {
+                    case true:
+                        cleaned = cleaned.Substring(1).Replace("•name•", string.Empty);
+                        break;
+                    case false:
+                        cleaned = cleaned.Replace("•name•", player);
+                        break;
+                }
+            }
+
+            //cleaned = Regex.Replace(cleaned, @"[\r\n]+", string.Empty);
+            cleaned = Regex.Replace(cleaned, @"[\x00-\x0C\x0E-\x1F]+", string.Empty);
+            line = cleaned;
+        }
+        catch (Exception ex)
+        {
+            //MemoryHandler.Instance.RaiseException(Logger, ex, true);
+            Console.WriteLine(ex.Message);
+        }
+
+        return line;
+    }
+}
 
 class HttpModule
 {
@@ -484,7 +670,7 @@ class HttpModule
         {
             string json = File.ReadAllText(ConfigPath);
             JObject? data = JObject.Parse(json);
-            SocketConfig? config = data?["server"] ?.ToObject<SocketConfig>();
+            SocketConfig? config = data?["server"]?.ToObject<SocketConfig>();
 
             if (config != null)
             {
@@ -508,8 +694,8 @@ class HttpModule
         {
             type,
             code,
-            name = new TextModule().ClearText(name),
-            text = new TextModule().ClearText(text)
+            name = ChatCleaner.ProcessFullLine(code, name),
+            text = ChatCleaner.ProcessFullLine(code, text)
         });
 
         try
