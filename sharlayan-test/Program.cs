@@ -719,7 +719,7 @@ class HttpModule
 
     private class SocketConfig
     {
-        public string host = "localhost";
+        public string host = "127.0.0.1";
         public int port = 8898;
     }
 }
