@@ -674,6 +674,11 @@ class HttpModule
 
             if (config != null)
             {
+                if (config.host == "localhost")
+                {
+                    config.host = "127.0.0.1";
+                }
+
                 Config = config;
             }
             else
