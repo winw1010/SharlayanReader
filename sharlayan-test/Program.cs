@@ -19,7 +19,6 @@ bool isScanning = false;
 int _previousArrayIndex = 0;
 int _previousOffset = 0;
 
-string lastSystemMessage = "";
 string lastChatLogString = "";
 string lastDialogString = "";
 string lastCutsceneString = "";
@@ -40,16 +39,14 @@ void MainProcess()
         {
             MemoryHandler memoryHandler = GetGameProcess();
             isScanning = true;
-            WriteSystemMessage("讀取字幕中，請勿關閉本視窗");
             while (isScanning)
             {
                 RunScanner(memoryHandler);
                 TaskDelay();
             }
         }
-        catch (Exception exception)
+        catch (Exception)
         {
-            WriteSystemMessage(exception.Message);
         }
         TaskDelay(1000);
     }
@@ -80,9 +77,9 @@ MemoryHandler GetGameProcess()
 
         return memoryHandler;
     }
-    catch (Exception exception)
+    catch (Exception)
     {
-        throw new Exception("等待FFXIV啟動...(" + exception.Message + ")");
+        throw new Exception();
     }
 }
 
@@ -219,7 +216,6 @@ void ChatLogScanner(MemoryHandler memoryHandler)
                     }
                     catch (Exception)
                     {
-                        //Console.WriteLine(exception.Message);
                     }
 
                     if (playerName != "")
@@ -234,19 +230,16 @@ void ChatLogScanner(MemoryHandler memoryHandler)
                         logText = logName != "" ? chatLogText.Replace(logName + ":", "") : chatLogText;
                     }
 
-                    //Console.WriteLine("對話紀錄字串: (" + chatLogItem.Code + ")" + chatLogItem.Message.Replace('\r', ' '));
-
                     if (chatLogItem.Code != "003D" || checkHistory(chatLogItem.Code, logText))
                     {
-                        new HttpModule().PostAsync("CHAT_LOG", chatLogItem.Code, logName, logText);
+                        PassData("CHAT_LOG", chatLogItem.Code, logName, logText);
                     }
                 }
             }
         }
     }
-    catch (Exception exception)
+    catch (Exception)
     {
-        //Console.WriteLine("ChatLogScanner: " + exception.Message);
         isScanning = false;
     }
 
@@ -292,13 +285,11 @@ void DialogScanner(MemoryHandler memoryHandler)
         {
             lastDialogString = result[1];
             addHistory(result[1]);
-            //Console.WriteLine("對話框字串: " + result[0] + ": " + result[1].Replace('\r', ' '));
-            new HttpModule().PostAsync("DIALOG", "003D", result[0], result[1]);
+            PassData("DIALOG", "003D", result[0], result[1]);
         }
     }
-    catch (Exception exception)
+    catch (Exception)
     {
-        //Console.WriteLine("DialogScanner: " + exception.Message);
         isScanning = false;
     }
 
@@ -401,14 +392,12 @@ void CutsceneScanner(MemoryHandler memoryHandler)
             if (byteString != lastCutsceneString)
             {
                 lastCutsceneString = byteString;
-                //Console.WriteLine("過場字串: " + byteString.Replace('\r', ' ') + "\n過場位元組: " + ArrayToString(byteArray));
-                new HttpModule().PostAsync("CUTSCENE", "0044", "", byteString, 1000);
+                PassData("CUTSCENE", "0044", "", byteString, 1000);
             }
         }
     }
-    catch (Exception exception)
+    catch (Exception)
     {
-        //Console.WriteLine("CutsceneScanner: " + exception.Message);
         isScanning = false;
     }
 
@@ -434,20 +423,6 @@ bool CompareArray(byte[] byteArray1, byte[] byteArray2)
 string ByteToString(byte[] byteArray)
 {
     return Encoding.UTF8.GetString(byteArray);
-}
-
-string ArrayToString(byte[] byteArray)
-{
-    string arrayString = "[";
-
-    for (int i = 0; i < byteArray.Length; i++)
-    {
-        arrayString += byteArray[i] + " ";
-    }
-
-    arrayString += "]";
-
-    return arrayString;
 }
 
 byte[] ClearArray(byte[] byteArray, int startIndex = 0)
@@ -481,57 +456,29 @@ void TaskDelay(int delayTIme = 20)
     {
         Task.Delay(delayTIme).Wait();
     }
-    catch (Exception exception)
+    catch (Exception)
     {
-        WriteSystemMessage("TaskDelay: " + exception.Message);
     }
 }
 
-void WriteSystemMessage(string message)
+async void PassData(string type, string code, string name, string text, int sleepTime = 0)
 {
-    if (message != lastSystemMessage)
+    string dataString = JsonConvert.SerializeObject(new
     {
-        lastSystemMessage = message;
-        //Console.WriteLine(lastSystemMessage + "\n");
-    }
+        type,
+        code,
+        name = ChatCleaner.ProcessFullLine(code, name),
+        text = ChatCleaner.ProcessFullLine(code, text)
+    });
+
+    await Task.Delay(sleepTime);
+    Console.Write(dataString + "\r\n");
+
+    return;
 }
 #endregion
 
 #region Class Definition
-/*
-class TextModule
-{
-    private static readonly Regex ArrowRegex = new Regex(@"", RegexOptions.Compiled);
-    private static readonly Regex HQRegex = new Regex(@"", RegexOptions.Compiled);
-    private static readonly Regex NoPrintingCharactersRegex = new Regex(@"[\x00-\x0C\x0E-\x1F]+", RegexOptions.Compiled);
-    private static readonly Regex SpecialPurposeUnicodeRegex = new Regex(@"[\uE000-\uF8FF]", RegexOptions.Compiled);
-    private static readonly Regex SpecialReplacementRegex = new Regex(@"[�]", RegexOptions.Compiled);
-    private static readonly Regex ItemRegex = new Regex(@"H%I&(.+?)IH", RegexOptions.Compiled);
-
-    public string ClearText(string text)
-    {
-        // replace right arrow in chat (parsing)
-        text = ArrowRegex.Replace(text, "⇒");
-
-        // replace HQ symbol
-        text = HQRegex.Replace(text, "[HQ]");
-
-        // replace all Extended special purpose unicode with empty string
-        text = SpecialPurposeUnicodeRegex.Replace(text, string.Empty);
-
-        // cleanup special replacement character bytes: 239 191 189
-        text = SpecialReplacementRegex.Replace(text, string.Empty);
-
-        // remove characters 0-31
-        text = NoPrintingCharactersRegex.Replace(text, string.Empty);
-
-        // remove H%I& and IH
-        text = ItemRegex.Replace(text, "$1");
-
-        return text.Trim();
-    }
-}
-*/
 
 class ChatCleaner
 {
@@ -661,7 +608,7 @@ class ChatCleaner
 
             line = cleaned;
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             //MemoryHandler.Instance.RaiseException(Logger, ex, true);
             //Console.WriteLine(ex.Message);
@@ -704,91 +651,13 @@ class ChatCleaner
             cleaned = Regex.Replace(cleaned, @"[\x00-\x0C\x0E-\x1F]+", string.Empty);
             line = cleaned;
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             //MemoryHandler.Instance.RaiseException(Logger, ex, true);
             //Console.WriteLine(ex.Message);
         }
 
         return line;
-    }
-}
-
-class HttpModule
-{
-    private readonly HttpClient Client = new HttpClient();
-    private readonly string ConfigPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), @"Tataru Helper Node\setting\config.json");
-
-    private static bool IsFirst = true;
-    private static SocketConfig Config = new SocketConfig();
-
-    public HttpModule()
-    {
-        if (IsFirst)
-        {
-            IsFirst = false;
-            SetConfig();
-        }
-    }
-
-    private void SetConfig()
-    {
-        try
-        {
-            string json = File.ReadAllText(ConfigPath);
-            JObject? data = JObject.Parse(json);
-            SocketConfig? config = data?["server"]?.ToObject<SocketConfig>();
-
-            if (config != null)
-            {
-                if (config.host == "localhost")
-                {
-                    config.host = "127.0.0.1";
-                }
-
-                Config = config;
-            }
-            else
-            {
-                throw new Exception("Null Object");
-            }
-        }
-        catch (Exception exception)
-        {
-            //Console.WriteLine(exception.Message);
-        }
-    }
-
-    public async void PostAsync(string type, string code, string name, string text, int sleepTime = 0, bool isRetry = false)
-    {
-        string url = "http://" + Config.host + ":" + Config.port;
-        string dataString = JsonConvert.SerializeObject(new
-        {
-            type,
-            code,
-            name = ChatCleaner.ProcessFullLine(code, name),
-            text = ChatCleaner.ProcessFullLine(code, text)
-        });
-
-        await Task.Delay(sleepTime);
-        Console.Write(dataString + "\r\n");
-
-        try
-        {
-            await Client.PostAsync(url, new StringContent(dataString, Encoding.UTF8, "application/json"));
-        }
-        catch (Exception)
-        {
-            //Console.WriteLine(exception.Message);
-        }
-
-        return;
-    }
-
-    private class SocketConfig
-    {
-        public string host = "127.0.0.1";
-        public int port = 8898;
     }
 }
 #endregion
