@@ -213,7 +213,7 @@ void ChatLogScanner(MemoryHandler memoryHandler)
                     string[] splitLogmessage = chatLogText.Split(':');
                     string logName = splitLogmessage.Length > 1 ? splitLogmessage[0] : "";
                     string logText = logName != "" ? chatLogText.Replace(logName + ":", "") : chatLogText;
-                    Console.WriteLine("對話紀錄字串: (" + chatLogItem.Code + ")" + chatLogItem.Message.Replace('\r', ' '));
+                    //Console.WriteLine("對話紀錄字串: (" + chatLogItem.Code + ")" + chatLogItem.Message.Replace('\r', ' '));
 
                     if (chatLogItem.Code != "003D" || checkHistory(chatLogItem.Code, logText))
                     {
@@ -225,7 +225,7 @@ void ChatLogScanner(MemoryHandler memoryHandler)
     }
     catch (Exception exception)
     {
-        Console.WriteLine("ChatLogScanner: " + exception.Message);
+        //Console.WriteLine("ChatLogScanner: " + exception.Message);
         isScanning = false;
     }
 
@@ -271,13 +271,13 @@ void DialogScanner(MemoryHandler memoryHandler)
         {
             lastDialogString = result[1];
             addHistory(result[1]);
-            Console.WriteLine("對話框字串: " + result[0] + ": " + result[1].Replace('\r', ' '));
+            //Console.WriteLine("對話框字串: " + result[0] + ": " + result[1].Replace('\r', ' '));
             new HttpModule().PostAsync("DIALOG", "003D", result[0], result[1]);
         }
     }
     catch (Exception exception)
     {
-        Console.WriteLine("DialogScanner: " + exception.Message);
+        //Console.WriteLine("DialogScanner: " + exception.Message);
         isScanning = false;
     }
 
@@ -380,14 +380,14 @@ void CutsceneScanner(MemoryHandler memoryHandler)
             if (byteString != lastCutsceneString)
             {
                 lastCutsceneString = byteString;
-                Console.WriteLine("過場字串: " + byteString.Replace('\r', ' ') + "\n過場位元組: " + ArrayToString(byteArray));
+                //Console.WriteLine("過場字串: " + byteString.Replace('\r', ' ') + "\n過場位元組: " + ArrayToString(byteArray));
                 new HttpModule().PostAsync("CUTSCENE", "0044", "", byteString, 1000);
             }
         }
     }
     catch (Exception exception)
     {
-        Console.WriteLine("CutsceneScanner: " + exception.Message);
+        //Console.WriteLine("CutsceneScanner: " + exception.Message);
         isScanning = false;
     }
 
@@ -471,7 +471,7 @@ void WriteSystemMessage(string message)
     if (message != lastSystemMessage)
     {
         lastSystemMessage = message;
-        Console.WriteLine(lastSystemMessage + "\n");
+        //Console.WriteLine(lastSystemMessage + "\n");
     }
 }
 #endregion
@@ -643,7 +643,7 @@ class ChatCleaner
         catch (Exception ex)
         {
             //MemoryHandler.Instance.RaiseException(Logger, ex, true);
-            Console.WriteLine(ex.Message);
+            //Console.WriteLine(ex.Message);
         }
 
         return ProcessName(line);
@@ -686,7 +686,7 @@ class ChatCleaner
         catch (Exception ex)
         {
             //MemoryHandler.Instance.RaiseException(Logger, ex, true);
-            Console.WriteLine(ex.Message);
+            //Console.WriteLine(ex.Message);
         }
 
         return line;
@@ -734,7 +734,7 @@ class HttpModule
         }
         catch (Exception exception)
         {
-            Console.WriteLine(exception.Message);
+            //Console.WriteLine(exception.Message);
         }
     }
 
@@ -748,6 +748,8 @@ class HttpModule
             name = ChatCleaner.ProcessFullLine(code, name),
             text = ChatCleaner.ProcessFullLine(code, text)
         });
+
+        Console.Write(dataString + "\r\n");
 
         try
         {
