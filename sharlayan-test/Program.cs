@@ -749,17 +749,16 @@ class HttpModule
             text = ChatCleaner.ProcessFullLine(code, text)
         });
 
+        await Task.Delay(sleepTime);
         Console.Write(dataString + "\r\n");
 
         try
         {
-            await Task.Delay(sleepTime);
             await Client.PostAsync(url, new StringContent(dataString, Encoding.UTF8, "application/json"));
         }
         catch (Exception)
         {
-            SetConfig();
-            if (!isRetry) { PostAsync(type, code, name, text, sleepTime, true); }
+            //Console.WriteLine(exception.Message);
         }
 
         return;
