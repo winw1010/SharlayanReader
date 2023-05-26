@@ -1,7 +1,6 @@
 ﻿#region Using
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using NLog;
 using Sharlayan;
 using Sharlayan.Core;
 using Sharlayan.Enums;
@@ -210,9 +209,31 @@ void ChatLogScanner(MemoryHandler memoryHandler)
                     lastChatLogString = chatLogItem.Message;
 
                     string chatLogText = chatLogItem.Message;
-                    string[] splitLogmessage = chatLogText.Split(':');
-                    string logName = splitLogmessage.Length > 1 ? splitLogmessage[0] : "";
-                    string logText = logName != "" ? chatLogText.Replace(logName + ":", "") : chatLogText;
+                    string playerName = "";
+                    string logName = "";
+                    string logText = "";
+
+                    try
+                    {
+                        playerName = chatLogItem.PlayerName.Trim();
+                    }
+                    catch (Exception)
+                    {
+                        //Console.WriteLine(exception.Message);
+                    }
+
+                    if (playerName != "")
+                    {
+                        logName = playerName;
+                        logText = chatLogText;
+                    }
+                    else
+                    {
+                        string[] splitLogmessage = chatLogText.Split(':');
+                        logName = splitLogmessage.Length > 1 ? splitLogmessage[0] : "";
+                        logText = logName != "" ? chatLogText.Replace(logName + ":", "") : chatLogText;
+                    }
+
                     //Console.WriteLine("對話紀錄字串: (" + chatLogItem.Code + ")" + chatLogItem.Message.Replace('\r', ' '));
 
                     if (chatLogItem.Code != "003D" || checkHistory(chatLogItem.Code, logText))
