@@ -461,7 +461,7 @@ void TaskDelay(int delayTIme = 20)
     }
 }
 
-async void PassData(string type, string code, string name, string text, int sleepTime = 1)
+async void PassData(string type, string code, string name, string text, int sleepTime = 0)
 {
     string dataString = JsonConvert.SerializeObject(new
     {
