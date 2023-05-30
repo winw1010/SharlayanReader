@@ -546,9 +546,6 @@ class ChatCleaner
                                 {
                                     newList.Add(0x40);
                                 }
-                                else {
-                                    newList.AddRange(Encoding.UTF8.GetBytes(bCheckStr));
-                                }
 
                                 /*
                                 if (Utilities.AutoTranslate.EnDict.TryGetValue(bCheckStr.Replace("[0", "[").ToLower(), out var AutoTranslateVal))
