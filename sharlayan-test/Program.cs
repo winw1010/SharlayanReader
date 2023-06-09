@@ -122,7 +122,8 @@ void AddSignature(List<Signature> signatures)
         Key = "CUTSCENE_TEXT",
         PointerPath = new List<long>
         {
-            0x02142DA0,
+            //0x02142DA0,
+            0x0213E020,
             0x68,
             0x250,
             0x0,
