@@ -71,9 +71,12 @@ MemoryHandler GetGameProcess()
 
         MemoryHandler memoryHandler = SharlayanMemoryManager.Instance.AddHandler(configuration);
 
-        List<Signature> signatures = new List<Signature>();
-        AddSignature(signatures);
-        memoryHandler.Scanner.LoadOffsets(signatures.ToArray());
+        string signaturesText = File.ReadAllText("signatures.json");
+        var signatures = JsonConvert.DeserializeObject<List<Signature>>(signaturesText);
+        if (signatures != null)
+        {
+            memoryHandler.Scanner.LoadOffsets(signatures.ToArray());
+        }
 
         return memoryHandler;
     }
@@ -83,67 +86,16 @@ MemoryHandler GetGameProcess()
     }
 }
 
-void AddSignature(List<Signature> signatures)
-{
-    signatures.Add(new Signature
-    {
-        Key = "PANEL_NAME",
-        ASMSignature = true,
-        PointerPath = new List<long>
-        {
-            0,
-            0,
-            32,
-            14504,
-            544,
-            218
-        },
-        Value = "488B4708498B5D00498B7728488B3D",
-    });
+/*
+CUTSCENE ADDRESS
+//0x02142DA0,
+//0x0213E020,
+0x0213DDA0,
+0x68,
+0x250,
+0x0,
+*/
 
-    signatures.Add(new Signature
-    {
-        Key = "PANEL_TEXT",
-        ASMSignature = true,
-        PointerPath = new List<long>
-        {
-            0,
-            0,
-            32,
-            14504,
-            552,
-            184
-        },
-        Value = "488B4708498B5D00498B7728488B3D",
-    });
-
-    signatures.Add(new Signature
-    {
-        Key = "CUTSCENE_TEXT",
-        PointerPath = new List<long>
-        {
-            //0x02142DA0,
-            0x0213E020,
-            0x68,
-            0x250,
-            0x0,
-        }
-    });
-
-    signatures.Add(new Signature
-    {
-        Key = "CUTSCENE_DETECTOR",
-        ASMSignature = true,
-        PointerPath = new List<long>
-        {
-            0,
-            0
-        },
-        Value = "488B0D********881D",
-    });
-
-    return;
-}
 #endregion
 
 #region ChatLogScanner
