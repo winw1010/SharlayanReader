@@ -132,45 +132,6 @@ void AddSignature(List<Signature> signatures)
 
     signatures.Add(new Signature
     {
-        Key = "CUTSCENE_TEXT_0",
-        PointerPath = new List<long>
-        {
-            0x02122FD8,
-            0x0,
-            0x20,
-            0x100,
-            0x0,
-        }
-    });
-
-    signatures.Add(new Signature
-    {
-        Key = "CUTSCENE_TEXT_1",
-        PointerPath = new List<long>
-        {
-            0x0211DBB8,
-            0x8,
-            0x20,
-            0x100,
-            0x0,
-        }
-    });
-
-    signatures.Add(new Signature
-    {
-        Key = "CUTSCENE_TEXT_2",
-        PointerPath = new List<long>
-        {
-            0x021231D0,
-            0x10,
-            0x20,
-            0x100,
-            0x0,
-        }
-    });
-
-    signatures.Add(new Signature
-    {
         Key = "CUTSCENE_DETECTOR",
         ASMSignature = true,
         PointerPath = new List<long>
@@ -377,13 +338,6 @@ void CutsceneScanner(MemoryHandler memoryHandler)
         string byteString = "";
 
         byteArray = memoryHandler.GetByteArray(memoryHandler.Scanner.Locations["CUTSCENE_TEXT"], 256);
-
-        for (int i = 0; i < 3; i++)
-        {
-            if (byteArray.Length > 0) break;
-            string key = "CUTSCENE_TEXT_" + i;
-            byteArray = memoryHandler.GetByteArray(memoryHandler.Scanner.Locations[key], 256);
-        }
 
         if (byteArray.Length > 0)
         {
