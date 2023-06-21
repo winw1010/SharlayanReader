@@ -351,15 +351,18 @@ void RunScanner(MemoryHandler memoryHandler)
 {
     if (!memoryHandler.Scanner.IsScanning)
     {
-        Task.Run(() => {
+        Task.Run(() =>
+        {
             ChatLogScanner(memoryHandler);
         });
 
-        Task.Run(() => {
+        Task.Run(() =>
+        {
             DialogScanner(memoryHandler);
         });
 
-        Task.Run(() => {
+        Task.Run(() =>
+        {
             CutsceneScanner(memoryHandler);
         });
     }
@@ -378,6 +381,8 @@ void TaskDelay(int delayTIme = 20)
 
 async void PassData(string type, string code, string name, string text, int sleepTime = 0)
 {
+    await Task.Delay(sleepTime);
+
     string dataString = JsonConvert.SerializeObject(new
     {
         type,
@@ -386,7 +391,6 @@ async void PassData(string type, string code, string name, string text, int slee
         text = ChatCleaner.ProcessFullLine(code, text)
     });
 
-    await Task.Delay(sleepTime);
     Console.Write(dataString + "\r\n");
 
     return;
