@@ -351,20 +351,9 @@ void RunScanner(MemoryHandler memoryHandler)
 {
     if (!memoryHandler.Scanner.IsScanning)
     {
-        Task.Run(() =>
-        {
-            ChatLogScanner(memoryHandler);
-        });
-
-        Task.Run(() =>
-        {
-            DialogScanner(memoryHandler);
-        });
-
-        Task.Run(() =>
-        {
-            CutsceneScanner(memoryHandler);
-        });
+        ChatLogScanner(memoryHandler);
+        DialogScanner(memoryHandler);
+        CutsceneScanner(memoryHandler);
     }
 }
 
