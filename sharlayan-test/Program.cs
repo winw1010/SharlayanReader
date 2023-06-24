@@ -299,7 +299,7 @@ void CutsceneScanner(MemoryHandler memoryHandler)
             if (byteString != lastCutsceneString)
             {
                 lastCutsceneString = byteString;
-                PassData("CUTSCENE", "003D", "", byteString, 1000);
+                PassData("CUTSCENE", "003D", "", byteString);
             }
         }
     }
