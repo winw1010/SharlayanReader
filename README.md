@@ -1,6 +1,6 @@
-# sharlayan-test
+# SharlayanReader
 
-Tataru Helper Node 字幕擷取程式
+Tataru Helper Node 專用字幕擷取程式
 
 ## 注意事項
 
