@@ -143,7 +143,7 @@ void ChatLogScanner(MemoryHandler memoryHandler)
                         logText = logName != "" ? chatLogText.Replace(logName + ":", "") : chatLogText;
                     }
 
-                    if (chatLogItem.Code != "003D" || checkHistory(chatLogItem.Code, logText))
+                    if (chatLogItem.Code != "003D" || isNotRepeated(chatLogItem.Code, logText))
                     {
                         PassData("CHAT_LOG", chatLogItem.Code, logName, logText);
                     }
@@ -170,7 +170,7 @@ void addHistory(string text)
     }
 }
 
-bool checkHistory(string code, string text)
+bool isNotRepeated(string code, string text)
 {
     text = ChatCleaner.ProcessFullLine(code, text).Replace("\r", "");
     List<string> history = dialogHistory.ToList();
@@ -178,7 +178,7 @@ bool checkHistory(string code, string text)
     if (history.Count > 0)
     {
         int lastIndex = history.LastIndexOf(text);
-        return lastIndex < history.Count - 2;
+        return lastIndex < 0 || lastIndex < history.Count - 2;
     }
     else
     {
