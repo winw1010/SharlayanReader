@@ -359,7 +359,7 @@ void RunScanner(MemoryHandler memoryHandler)
     }
 }
 
-void TaskDelay(int delayTIme = 20)
+void TaskDelay(int delayTIme = 50)
 {
     try
     {
