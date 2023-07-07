@@ -1,6 +1,5 @@
 ﻿#region Using
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using Sharlayan;
 using Sharlayan.Core;
 using Sharlayan.Enums;
@@ -13,7 +12,7 @@ using System.Text.RegularExpressions;
 using System.Web;
 #endregion
 
-#region Global Variable
+#region Variable
 bool isScanning = false;
 
 int _previousArrayIndex = 0;
@@ -351,9 +350,12 @@ void RunScanner(MemoryHandler memoryHandler)
 {
     if (!memoryHandler.Scanner.IsScanning)
     {
-        ChatLogScanner(memoryHandler);
-        DialogScanner(memoryHandler);
-        CutsceneScanner(memoryHandler);
+        Task.Run(() =>
+        {
+            ChatLogScanner(memoryHandler);
+            DialogScanner(memoryHandler);
+            CutsceneScanner(memoryHandler);
+        });
     }
 }
 
