@@ -194,14 +194,14 @@ void DialogScanner(MemoryHandler memoryHandler)
         }
         */
 
-        string dialogName = GetByteString(memoryHandler, "PANEL_NAME", 90, 2);
+        //string dialogName = GetByteString(memoryHandler, "PANEL_NAME", 90, 2);
         string dialogText = GetByteString(memoryHandler, "PANEL_TEXT", 256);
 
         if (dialogText != lastDialogString)
         {
             lastDialogString = dialogText;
             addHistory(dialogText);
-            PassData("DIALOG", "003D", dialogName, dialogText);
+            PassData("DIALOG", "003D", "", dialogText);
         }
     }
     catch (Exception)
