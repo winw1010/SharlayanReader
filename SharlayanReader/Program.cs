@@ -330,9 +330,13 @@ string GetByteString(MemoryHandler memoryHandler, string key, int length, int re
 
     if (byteArray.Length > 0)
     {
-        List<byte> byteList = byteArray.ToList();
-        byteList.RemoveRange(0, removeCount);
-        byteArray = byteList.ToArray();
+        if (removeCount > 0)
+        {
+            List<byte> byteList = byteArray.ToList();
+            byteList.RemoveRange(0, removeCount);
+            byteArray = byteList.ToArray();
+        }
+
         byteArray = ClearArray(byteArray);
         byteString = ByteToString(byteArray);
         return byteString;
@@ -355,6 +359,7 @@ byte[] ClearArray(byte[] byteArray, int startIndex = 0)
 
     return byteList.ToArray();
 }
+
 
 string ByteToString(byte[] byteArray)
 {
