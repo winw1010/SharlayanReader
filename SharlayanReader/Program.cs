@@ -6,6 +6,7 @@ using Sharlayan.Enums;
 using Sharlayan.Extensions;
 using Sharlayan.Models;
 using Sharlayan.Models.ReadResults;
+using System.Buffers;
 using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -84,16 +85,6 @@ MemoryHandler GetGameProcess()
         throw new Exception();
     }
 }
-
-/*
-CUTSCENE ADDRESS
-//0x02142DA0,
-//0x0213E020,
-0x0213DDA0,
-0x68,
-0x250,
-0x0,
-*/
 
 #endregion
 
@@ -192,6 +183,7 @@ void DialogScanner(MemoryHandler memoryHandler)
 {
     try
     {
+        /*
         string[] result = GetDialogPanel(memoryHandler);
 
         if (result.Length > 0 && result[1] != lastDialogString)
@@ -199,6 +191,17 @@ void DialogScanner(MemoryHandler memoryHandler)
             lastDialogString = result[1];
             addHistory(result[1]);
             PassData("DIALOG", "003D", result[0], result[1]);
+        }
+        */
+
+        string dialogName = GetByteString(memoryHandler, "PANEL_NAME", 90, 2);
+        string dialogText = GetByteString(memoryHandler, "PANEL_TEXT", 256);
+
+        if (dialogText != lastDialogString)
+        {
+            lastDialogString = dialogText;
+            addHistory(dialogText);
+            PassData("DIALOG", "003D", dialogName, dialogText);
         }
     }
     catch (Exception)
@@ -209,6 +212,7 @@ void DialogScanner(MemoryHandler memoryHandler)
     return;
 }
 
+/*
 string[] GetDialogPanel(MemoryHandler memoryHandler)
 {
     string[] result = new string[] { };
@@ -273,6 +277,7 @@ int GetRealTextLength(ref byte[] byteArray)
 
     return textEnd;
 }
+*/
 #endregion
 
 #region CutsceneScanner
@@ -285,21 +290,12 @@ void CutsceneScanner(MemoryHandler memoryHandler)
 
         if (isCutscene == 1) return;
 
-        byte[] byteArray = new byte[0];
-        string byteString = "";
+        string byteString = GetByteString(memoryHandler, "CUTSCENE_TEXT", 256);
 
-        byteArray = memoryHandler.GetByteArray(memoryHandler.Scanner.Locations["CUTSCENE_TEXT"], 256);
-
-        if (byteArray.Length > 0)
+        if (byteString != lastCutsceneString)
         {
-            byteArray = ClearArray(byteArray);
-            byteString = ByteToString(byteArray);
-
-            if (byteString != lastCutsceneString)
-            {
-                lastCutsceneString = byteString;
-                PassData("CUTSCENE", "003D", "", byteString, 1000);
-            }
+            lastCutsceneString = byteString;
+            PassData("CUTSCENE", "003D", "", byteString, 1000);
         }
     }
     catch (Exception)
@@ -326,9 +322,25 @@ bool CompareArray(byte[] byteArray1, byte[] byteArray2)
 }
 */
 
-string ByteToString(byte[] byteArray)
+string GetByteString(MemoryHandler memoryHandler, string key, int length, int removeCount = 0)
 {
-    return Encoding.UTF8.GetString(byteArray);
+    byte[] byteArray = new byte[0];
+    string byteString = "";
+    byteArray = memoryHandler.GetByteArray(memoryHandler.Scanner.Locations[key], length);
+
+    if (byteArray.Length > 0)
+    {
+        List<byte> byteList = byteArray.ToList();
+        byteList.RemoveRange(0, removeCount);
+        byteArray = byteList.ToArray();
+        byteArray = ClearArray(byteArray);
+        byteString = ByteToString(byteArray);
+        return byteString;
+    }
+    else
+    {
+        return "";
+    }
 }
 
 byte[] ClearArray(byte[] byteArray, int startIndex = 0)
@@ -342,6 +354,11 @@ byte[] ClearArray(byte[] byteArray, int startIndex = 0)
     }
 
     return byteList.ToArray();
+}
+
+string ByteToString(byte[] byteArray)
+{
+    return Encoding.UTF8.GetString(byteArray);
 }
 #endregion
 
