@@ -194,8 +194,38 @@ void DialogScanner(MemoryHandler memoryHandler)
         }
         */
 
-        string dialogName = GetByteString(memoryHandler, "PANEL_NAME", 128, 2);
-        string dialogText = GetByteString(memoryHandler, "PANEL_TEXT", 512);
+        string dialogName = "";
+        string dialogName10 = "";
+        string dialogName11 = "";
+        string dialogText = "";
+
+        try
+        {
+            dialogName10 = GetByteString(memoryHandler, "PANEL_NAME_10", 128, 2);
+        }
+        catch (Exception)
+        {
+        }
+
+        try
+        {
+            dialogName11 = GetByteString(memoryHandler, "PANEL_NAME_11", 128, 2);
+        }
+        catch (Exception)
+        {
+        }
+
+        if (dialogName10.Length > dialogName11.Length)
+        {
+            dialogName = dialogName10;
+        }
+
+        else if (dialogName11.Length > dialogName10.Length)
+        {
+            dialogName = dialogName11;
+        }
+
+        dialogText = GetByteString(memoryHandler, "PANEL_TEXT", 512);
 
         if (dialogText != lastDialogString)
         {
