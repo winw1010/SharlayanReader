@@ -215,12 +215,11 @@ void DialogScanner(MemoryHandler memoryHandler)
         {
         }
 
-        if (dialogName10.Length > dialogName11.Length)
+        if (dialogName10.Length >= dialogName11.Length)
         {
             dialogName = dialogName10;
         }
-
-        else if (dialogName11.Length > dialogName10.Length)
+        else
         {
             dialogName = dialogName11;
         }
