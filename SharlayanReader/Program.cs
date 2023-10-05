@@ -21,7 +21,7 @@ int _previousOffset = 0;
 
 string lastChatLogString = "";
 string lastDialogString = "";
-string lastCutsceneString = "";
+//string lastCutsceneString = "";
 
 List<string> dialogHistory = new List<string>();
 #endregion
