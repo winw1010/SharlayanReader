@@ -296,6 +296,7 @@ int GetRealTextLength(ref byte[] byteArray)
 #endregion
 
 #region CutsceneScanner
+/*
 void CutsceneScanner(MemoryHandler memoryHandler)
 {
     try
@@ -320,6 +321,7 @@ void CutsceneScanner(MemoryHandler memoryHandler)
 
     return;
 }
+*/
 #endregion
 
 #region Byte Functions
@@ -391,7 +393,7 @@ void RunScanner(MemoryHandler memoryHandler)
         {
             ChatLogScanner(memoryHandler);
             DialogScanner(memoryHandler);
-            CutsceneScanner(memoryHandler);
+            //CutsceneScanner(memoryHandler);
         });
     }
 }
