@@ -194,6 +194,11 @@ void DialogScanner(MemoryHandler memoryHandler)
         }
         */
 
+        var cutsceneDetector = (IntPtr)memoryHandler.Scanner.Locations["CUTSCENE_DETECTOR"];
+        int isCutscene = (int)memoryHandler.GetInt64(cutsceneDetector);
+
+        if (isCutscene == 1) return;
+
         string dialogName = "";
         string dialogText = "";
 
