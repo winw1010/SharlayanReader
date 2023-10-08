@@ -223,10 +223,10 @@ string[] GetDialogPanel(MemoryHandler memoryHandler)
 {
     string[] result = new string[] { };
 
-    var dialogPanelNamePointer = (IntPtr)memoryHandler.Scanner.Locations["PANEL_NAME_OLD"];
+    var dialogPanelNamePointer = (IntPtr)memoryHandler.Scanner.Locations["PANEL_NAME"];
     var dialogPanelNameLengthPointer = IntPtr.Subtract(dialogPanelNamePointer, 18);
 
-    var dialogPanelTextPointer = (IntPtr)memoryHandler.Scanner.Locations["PANEL_TEXT_OLD"];
+    var dialogPanelTextPointer = (IntPtr)memoryHandler.Scanner.Locations["PANEL_TEXT"];
     var dialogPanelTextPointer2 = new IntPtr((long)memoryHandler.GetUInt64(dialogPanelTextPointer));
 
     var dialogPanelTextLegthPointer = IntPtr.Add(dialogPanelTextPointer, 16);
