@@ -21,7 +21,7 @@ int _previousOffset = 0;
 
 string lastChatLogString = "";
 string lastDialogString = "";
-//string lastCutsceneString = "";
+string lastCutsceneString = "";
 
 List<string> dialogHistory = new List<string>();
 #endregion
@@ -60,16 +60,11 @@ MemoryHandler GetGameProcess()
         {
             ProcessModel = new ProcessModel
             {
-                Process = Process.GetProcessesByName("ffxiv_dx11").FirstOrDefault()
+                Process = Process.GetProcessesByName("ffxiv_dx11").FirstOrDefault(),
             },
-            GameLanguage = GameLanguage.English,
-            GameRegion = GameRegion.Global,
-            PatchVersion = "latest",
-            UseLocalCache = true,
-            ScanAllRegions = false
         };
-
-        MemoryHandler memoryHandler = SharlayanMemoryManager.Instance.AddHandler(configuration);
+        MemoryHandler memoryHandler = new MemoryHandler(configuration);
+        memoryHandler.Scanner.Locations.Clear();
 
         string signaturesText = File.ReadAllText("signatures.json");
         var signatures = JsonConvert.DeserializeObject<List<Signature>>(signaturesText);
@@ -194,17 +189,12 @@ void DialogScanner(MemoryHandler memoryHandler)
         }
         */
 
-        var cutsceneDetector = (IntPtr)memoryHandler.Scanner.Locations["CUTSCENE_DETECTOR"];
-        int isCutscene = (int)memoryHandler.GetInt64(cutsceneDetector);
-
-        if (isCutscene == 1) return;
-
         string dialogName = "";
         string dialogText = "";
 
         try
         {
-            dialogName = GetByteString(memoryHandler, "PANEL_NAME", 128, 2);
+            dialogName = GetByteString(memoryHandler, "PANEL_NAME", 128);
         }
         catch (Exception)
         {
@@ -296,7 +286,6 @@ int GetRealTextLength(ref byte[] byteArray)
 #endregion
 
 #region CutsceneScanner
-/*
 void CutsceneScanner(MemoryHandler memoryHandler)
 {
     try
@@ -321,7 +310,6 @@ void CutsceneScanner(MemoryHandler memoryHandler)
 
     return;
 }
-*/
 #endregion
 
 #region Byte Functions
@@ -393,7 +381,7 @@ void RunScanner(MemoryHandler memoryHandler)
         {
             ChatLogScanner(memoryHandler);
             DialogScanner(memoryHandler);
-            //CutsceneScanner(memoryHandler);
+            CutsceneScanner(memoryHandler);
         });
     }
 }
