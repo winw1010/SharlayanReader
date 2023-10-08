@@ -202,7 +202,7 @@ void DialogScanner(MemoryHandler memoryHandler)
 
         dialogText = GetByteString(memoryHandler, "PANEL_TEXT", 512);
 
-        if (dialogText != lastDialogString)
+        if (dialogText.Length > 0 && dialogText != lastDialogString)
         {
             lastDialogString = dialogText;
             addHistory(dialogText);
