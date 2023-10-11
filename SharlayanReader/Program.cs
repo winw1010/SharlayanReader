@@ -438,7 +438,7 @@ class ChatCleaner
 
     private static readonly Regex SpecialPurposeUnicodeRegex = new Regex(@"[\uE000-\uF8FF]", RegexOptions.Compiled);
 
-    private static readonly Regex SpecialReplacementRegex = new Regex(@"[�]", RegexOptions.Compiled);
+    private static readonly Regex SpecialReplacementRegex = new Regex(@"[\uFFFD]", RegexOptions.Compiled);
 
     public static string ProcessFullLine(string code, string text)
     {
