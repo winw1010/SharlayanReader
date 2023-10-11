@@ -586,7 +586,7 @@ class ChatCleaner
             }
 
             //cleaned = Regex.Replace(cleaned, @"[\r\n]+", string.Empty);
-            cleaned = Regex.Replace(cleaned, @"[\x00-\x0C\x0E-\x1F]+", string.Empty);
+            cleaned = Regex.Replace(cleaned, @"[\x00-\x0C\x0E-\x1F\x7F]+", string.Empty);
             line = cleaned;
         }
         catch (Exception)
