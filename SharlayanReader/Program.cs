@@ -428,9 +428,9 @@ class ChatCleaner
 
     private static readonly Regex PlayerRegEx = new Regex(@"(?<full>\[[A-Z0-9]{10}(?<first>[A-Z0-9]{3,})20(?<last>[A-Z0-9]{3,})\](?<short>[\w']+\.? [\w']+\.?)\[[A-Z0-9]{12}\])", DefaultOptions);
 
-    private static readonly Regex ArrowRegex = new Regex(@"", RegexOptions.Compiled);
+    private static readonly Regex ArrowRegex = new Regex(@"\uE06F", RegexOptions.Compiled);
 
-    private static readonly Regex HQRegex = new Regex(@"", RegexOptions.Compiled);
+    private static readonly Regex HQRegex = new Regex(@"\uE03C", RegexOptions.Compiled);
 
     //private static readonly Regex NewLineRegex = new Regex(@"[\r\n]+", RegexOptions.Compiled);
 
