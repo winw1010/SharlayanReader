@@ -434,7 +434,7 @@ class ChatCleaner
 
     //private static readonly Regex NewLineRegex = new Regex(@"[\r\n]+", RegexOptions.Compiled);
 
-    private static readonly Regex NoPrintingCharactersRegex = new Regex(@"[\x00-\x0C\x0E-\x1F]+", RegexOptions.Compiled);
+    private static readonly Regex NoPrintingCharactersRegex = new Regex(@"[\x00-\x0C\x0E-\x1F\x7F]+", RegexOptions.Compiled);
 
     private static readonly Regex SpecialPurposeUnicodeRegex = new Regex(@"[\uE000-\uF8FF]", RegexOptions.Compiled);
 
@@ -586,7 +586,7 @@ class ChatCleaner
             }
 
             //cleaned = Regex.Replace(cleaned, @"[\r\n]+", string.Empty);
-            cleaned = Regex.Replace(cleaned, @"[\x00-\x0C\x0E-\x1F]+", string.Empty);
+            cleaned = Regex.Replace(cleaned, @"[\x00-\x0C\x0E-\x1F\x7F]+", string.Empty);
             line = cleaned;
         }
         catch (Exception)
