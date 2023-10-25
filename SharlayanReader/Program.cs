@@ -18,7 +18,6 @@ bool isScanning = false;
 int _previousArrayIndex = 0;
 int _previousOffset = 0;
 
-List<string> dialogCode = new List<string>() { "003D" }; //, "0039" };
 string lastChatLogString = "";
 string lastDialogString = "";
 string lastCutsceneString = "";
@@ -129,7 +128,7 @@ void ChatLogScanner(MemoryHandler memoryHandler)
                         logText = logName != "" ? chatLogText.Replace(logName + ":", "") : chatLogText;
                     }
 
-                    if (dialogCode.IndexOf(chatLogItem.Code) < 0 || isNotRepeated(chatLogItem.Code, logText))
+                    if (chatLogItem.Code != "003D" || isNotRepeated(chatLogItem.Code, logText))
                     {
                         PassData("CHAT_LOG", chatLogItem.Code, logName, logText);
                     }
