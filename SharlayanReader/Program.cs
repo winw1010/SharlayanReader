@@ -2,7 +2,6 @@
 using Newtonsoft.Json;
 using Sharlayan;
 using Sharlayan.Core;
-using Sharlayan.Enums;
 using Sharlayan.Extensions;
 using Sharlayan.Models;
 using Sharlayan.Models.ReadResults;
@@ -19,7 +18,7 @@ bool isScanning = false;
 int _previousArrayIndex = 0;
 int _previousOffset = 0;
 
-List<string> dialogCode = new List<string>() { "003D", "0039" };
+List<string> dialogCode = new List<string>() { "003D" }; //, "0039" };
 string lastChatLogString = "";
 string lastDialogString = "";
 string lastCutsceneString = "";
@@ -193,17 +192,10 @@ void DialogScanner(MemoryHandler memoryHandler)
         string dialogName = "";
         string dialogText = "";
 
-        try
-        {
-            dialogName = GetByteString(memoryHandler, "PANEL_NAME", 128);
-        }
-        catch (Exception)
-        {
-        }
-
+        dialogName = GetByteString(memoryHandler, "PANEL_NAME", 128);
         dialogText = GetByteString(memoryHandler, "PANEL_TEXT", 512);
 
-        if (dialogText.Length > 0 && dialogText != lastDialogString)
+        if (dialogName.Length > 0 && dialogText.Length > 0 && dialogText != lastDialogString)
         {
             lastDialogString = dialogText;
             addHistory(dialogText);
@@ -330,27 +322,31 @@ bool CompareArray(byte[] byteArray1, byte[] byteArray2)
 
 string GetByteString(MemoryHandler memoryHandler, string key, int length, int removeCount = 0)
 {
-    byte[] byteArray = new byte[0];
-    string byteString = "";
-    byteArray = memoryHandler.GetByteArray(memoryHandler.Scanner.Locations[key], length);
-
-    if (byteArray.Length > 0)
+    try
     {
-        if (removeCount > 0)
+        byte[] byteArray = new byte[0];
+        string byteString = "";
+        byteArray = memoryHandler.GetByteArray(memoryHandler.Scanner.Locations[key], length);
+
+        if (byteArray.Length > 0)
         {
-            List<byte> byteList = byteArray.ToList();
-            byteList.RemoveRange(0, removeCount);
-            byteArray = byteList.ToArray();
-        }
+            if (removeCount > 0)
+            {
+                List<byte> byteList = byteArray.ToList();
+                byteList.RemoveRange(0, removeCount);
+                byteArray = byteList.ToArray();
+            }
 
-        byteArray = ClearArray(byteArray);
-        byteString = ByteToString(byteArray);
-        return byteString;
+            byteArray = ClearArray(byteArray);
+            byteString = ByteToString(byteArray);
+            return byteString;
+        }
     }
-    else
+    catch (Exception)
     {
-        return "";
     }
+
+    return "";
 }
 
 byte[] ClearArray(byte[] byteArray, int startIndex = 0)
