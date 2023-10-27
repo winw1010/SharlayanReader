@@ -18,9 +18,9 @@ bool isScanning = false;
 int _previousArrayIndex = 0;
 int _previousOffset = 0;
 
-string lastChatLogString = "";
-string lastDialogString = "";
-string lastCutsceneString = "";
+string lastChatLogMessage = "";
+string lastDialogText = "";
+string lastCutsceneText = "";
 
 List<string> dialogHistory = new List<string>();
 #endregion
@@ -99,33 +99,32 @@ void ChatLogScanner(MemoryHandler memoryHandler)
             {
                 ChatLogItem chatLogItem = chatLogEntries[i];
 
-                if (chatLogItem.Message != lastChatLogString)
+                if (chatLogItem.Message != lastChatLogMessage)
                 {
-                    lastChatLogString = chatLogItem.Message;
+                    lastChatLogMessage = chatLogItem.Message;
 
-                    string chatLogText = chatLogItem.Message;
-                    string playerName = "";
+                    string chatLogMessage = chatLogItem.Message;
+                    string playerName = getPlayerName(chatLogItem);
                     string logName = "";
                     string logText = "";
 
-                    try
-                    {
-                        playerName = chatLogItem.PlayerName.Trim();
-                    }
-                    catch (Exception)
-                    {
-                    }
-
-                    if (playerName != "")
+                    if (playerName.Length > 0)
                     {
                         logName = playerName;
-                        logText = chatLogText;
+                        logText = chatLogMessage;
                     }
                     else
                     {
-                        string[] splitLogmessage = chatLogText.Split(':');
-                        logName = splitLogmessage.Length > 1 ? splitLogmessage[0] : "";
-                        logText = logName != "" ? chatLogText.Replace(logName + ":", "") : chatLogText;
+                        string[] splitedMessage = chatLogMessage.Split(':');
+                        if (splitedMessage.Length > 1 && splitedMessage[0].Length > 0)
+                        {
+                            logName = splitedMessage[0];
+                            logText = chatLogMessage.Replace(logName + ":", "");
+                        }
+                        else
+                        {
+                            logText = chatLogMessage;
+                        }
                     }
 
                     if (chatLogItem.Code != "003D" || isNotRepeated(chatLogItem.Code, logText))
@@ -142,6 +141,21 @@ void ChatLogScanner(MemoryHandler memoryHandler)
     }
 
     return;
+}
+
+string getPlayerName(ChatLogItem chatLogItem)
+{
+    string playerName = "";
+
+    try
+    {
+        playerName = chatLogItem.PlayerName.Trim();
+    }
+    catch (Exception)
+    {
+    }
+
+    return playerName;
 }
 
 void addHistory(string text)
@@ -188,15 +202,12 @@ void DialogScanner(MemoryHandler memoryHandler)
         }
         */
 
-        string dialogName = "";
-        string dialogText = "";
+        string dialogName = GetByteString(memoryHandler, "PANEL_NAME", 128);
+        string dialogText = GetByteString(memoryHandler, "PANEL_TEXT", 512);
 
-        dialogName = GetByteString(memoryHandler, "PANEL_NAME", 128);
-        dialogText = GetByteString(memoryHandler, "PANEL_TEXT", 512);
-
-        if (dialogName.Length > 0 && dialogText.Length > 0 && dialogText != lastDialogString)
+        if (dialogName.Length > 0 && dialogText.Length > 0 && dialogText != lastDialogText)
         {
-            lastDialogString = dialogText;
+            lastDialogText = dialogText;
             addHistory(dialogText);
             PassData("DIALOG", "003D", dialogName, dialogText);
         }
@@ -282,17 +293,17 @@ void CutsceneScanner(MemoryHandler memoryHandler)
 {
     try
     {
-        var cutsceneDetector = (IntPtr)memoryHandler.Scanner.Locations["CUTSCENE_DETECTOR"];
-        int isCutscene = (int)memoryHandler.GetInt64(cutsceneDetector);
+        var cutsceneDetectorPointer = (IntPtr)memoryHandler.Scanner.Locations["CUTSCENE_DETECTOR"];
+        int isCutscene = (int)memoryHandler.GetInt64(cutsceneDetectorPointer);
 
         if (isCutscene == 1) return;
 
-        string byteString = GetByteString(memoryHandler, "CUTSCENE_TEXT", 256);
+        string cutsceneText = GetByteString(memoryHandler, "CUTSCENE_TEXT", 256);
 
-        if (byteString != lastCutsceneString)
+        if (cutsceneText.Length > 0 && cutsceneText != lastCutsceneText)
         {
-            lastCutsceneString = byteString;
-            PassData("CUTSCENE", "003D", "", byteString, 1000);
+            lastCutsceneText = cutsceneText;
+            PassData("CUTSCENE", "003D", "", cutsceneText, 1000);
         }
     }
     catch (Exception)
@@ -319,41 +330,18 @@ bool CompareArray(byte[] byteArray1, byte[] byteArray2)
 }
 */
 
-string GetByteString(MemoryHandler memoryHandler, string key, int length, int removeCount = 0)
+string GetByteString(MemoryHandler memoryHandler, string key, int length)
 {
-    try
-    {
-        byte[] byteArray = new byte[0];
-        string byteString = "";
-        byteArray = memoryHandler.GetByteArray(memoryHandler.Scanner.Locations[key], length);
-
-        if (byteArray.Length > 0)
-        {
-            if (removeCount > 0)
-            {
-                List<byte> byteList = byteArray.ToList();
-                byteList.RemoveRange(0, removeCount);
-                byteArray = byteList.ToArray();
-            }
-
-            byteArray = ClearArray(byteArray);
-            byteString = ByteToString(byteArray);
-            return byteString;
-        }
-    }
-    catch (Exception)
-    {
-    }
-
-    return "";
+    byte[] byteArray = memoryHandler.GetByteArray(memoryHandler.Scanner.Locations[key], length);
+    return ByteArrayToString(GetRealByteArray(byteArray));
 }
 
-byte[] ClearArray(byte[] byteArray, int startIndex = 0)
+byte[] GetRealByteArray(byte[] byteArray)
 {
     List<byte> byteList = new List<byte>();
-    int nullIndex = byteArray.ToList().IndexOf(0x00, startIndex);
+    int nullIndex = byteArray.ToList().IndexOf(0x00);
 
-    for (int i = startIndex; i < nullIndex; i++)
+    for (int i = 0; i < nullIndex; i++)
     {
         byteList.Add(byteArray[i]);
     }
@@ -362,7 +350,7 @@ byte[] ClearArray(byte[] byteArray, int startIndex = 0)
 }
 
 
-string ByteToString(byte[] byteArray)
+string ByteArrayToString(byte[] byteArray)
 {
     return Encoding.UTF8.GetString(byteArray);
 }
