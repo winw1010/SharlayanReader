@@ -13,7 +13,7 @@ using System.Web;
 #endregion
 
 #region Variable
-bool isScanning = false;
+bool isRunning = false;
 
 int _previousArrayIndex = 0;
 int _previousOffset = 0;
@@ -37,15 +37,18 @@ void MainProcess()
         try
         {
             MemoryHandler memoryHandler = GetGameProcess();
-            isScanning = true;
-            while (isScanning)
+            isRunning = true;
+            Task.Run(aliveCheck);
+            while (isRunning)
             {
                 RunScanner(memoryHandler);
                 TaskDelay();
             }
+            PassData("MESSAGE", "003D", "", "ffxiv_dx11.exe is closed.");
         }
         catch (Exception)
         {
+            PassData("MESSAGE", "003D", "", "Waiting for ffxiv_dx11.exe......");
         }
         TaskDelay(1000);
     }
@@ -55,16 +58,24 @@ MemoryHandler GetGameProcess()
 {
     try
     {
+        // Get process
+        Process[] processes = Process.GetProcessesByName("ffxiv_dx11");
+        if (processes.Length <= 0) { throw new Exception(); }
+
+        // Create configuration
         SharlayanConfiguration configuration = new SharlayanConfiguration
         {
             ProcessModel = new ProcessModel
             {
-                Process = Process.GetProcessesByName("ffxiv_dx11").FirstOrDefault(),
+                Process = processes.FirstOrDefault(),
             },
         };
+
+        // Create memoryHandler
         MemoryHandler memoryHandler = new MemoryHandler(configuration);
         memoryHandler.Scanner.Locations.Clear();
 
+        // Set signatures
         string signaturesText = File.ReadAllText("signatures.json");
         var signatures = JsonConvert.DeserializeObject<List<Signature>>(signaturesText);
         if (signatures != null)
@@ -137,7 +148,6 @@ void ChatLogScanner(MemoryHandler memoryHandler)
     }
     catch (Exception)
     {
-        isScanning = false;
     }
 
     return;
@@ -214,7 +224,6 @@ void DialogScanner(MemoryHandler memoryHandler)
     }
     catch (Exception)
     {
-        isScanning = false;
     }
 
     return;
@@ -308,7 +317,6 @@ void CutsceneScanner(MemoryHandler memoryHandler)
     }
     catch (Exception)
     {
-        isScanning = false;
     }
 
     return;
@@ -332,8 +340,18 @@ bool CompareArray(byte[] byteArray1, byte[] byteArray2)
 
 string GetByteString(MemoryHandler memoryHandler, string key, int length)
 {
-    byte[] byteArray = memoryHandler.GetByteArray(memoryHandler.Scanner.Locations[key], length);
-    return ByteArrayToString(GetRealByteArray(byteArray));
+    string byteString = "";
+
+    try
+    {
+        byte[] byteArray = memoryHandler.GetByteArray(memoryHandler.Scanner.Locations[key], length);
+        byteString = ByteArrayToString(GetRealByteArray(byteArray));
+    }
+    catch (Exception)
+    {
+    }
+
+    return byteString;
 }
 
 byte[] GetRealByteArray(byte[] byteArray)
@@ -357,6 +375,24 @@ string ByteArrayToString(byte[] byteArray)
 #endregion
 
 #region System Functions
+async Task aliveCheck()
+{
+    while (true)
+    {
+        Process[] processes = Process.GetProcessesByName("ffxiv_dx11");
+        if (processes.Length > 0)
+        {
+            isRunning = true;
+            await Task.Delay(1000);
+        }
+        else
+        {
+            isRunning = false;
+            break;
+        }
+    }
+}
+
 void RunScanner(MemoryHandler memoryHandler)
 {
     if (!memoryHandler.Scanner.IsScanning)
@@ -400,7 +436,6 @@ async void PassData(string type, string code, string name, string text, int slee
 #endregion
 
 #region Class Definition
-
 class ChatCleaner
 {
     private const RegexOptions DefaultOptions = RegexOptions.Compiled | RegexOptions.ExplicitCapture;
