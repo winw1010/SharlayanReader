@@ -38,8 +38,6 @@ void MainProcess()
         {
             MemoryHandler memoryHandler = CreateMemoryHandler();
             PassData("CONSOLE", "003D", "", "Start reading ffxiv_dx11.exe.");
-            isRunning = true;
-            Task.Run(AliveCheck);
             RunReader(memoryHandler);
             PassData("CONSOLE", "003D", "", "Stop reading ffxiv_dx11.exe.");
         }
@@ -385,6 +383,9 @@ async Task AliveCheck()
 
 void RunReader(MemoryHandler memoryHandler)
 {
+    isRunning = true;
+    Task.Run(AliveCheck);
+
     while (isRunning)
     {
         if (!memoryHandler.Scanner.IsScanning)
