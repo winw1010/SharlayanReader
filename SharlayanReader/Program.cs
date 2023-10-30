@@ -56,39 +56,32 @@ void MainProcess()
 
 MemoryHandler GetGameProcess()
 {
-    try
+    // Get process
+    Process[] processes = Process.GetProcessesByName("ffxiv_dx11");
+    if (processes.Length <= 0) { throw new Exception(); }
+
+    // Create configuration
+    SharlayanConfiguration configuration = new SharlayanConfiguration
     {
-        // Get process
-        Process[] processes = Process.GetProcessesByName("ffxiv_dx11");
-        if (processes.Length <= 0) { throw new Exception(); }
-
-        // Create configuration
-        SharlayanConfiguration configuration = new SharlayanConfiguration
+        ProcessModel = new ProcessModel
         {
-            ProcessModel = new ProcessModel
-            {
-                Process = processes.FirstOrDefault(),
-            },
-        };
+            Process = processes.FirstOrDefault(),
+        },
+    };
 
-        // Create memoryHandler
-        MemoryHandler memoryHandler = new MemoryHandler(configuration);
-        memoryHandler.Scanner.Locations.Clear();
+    // Create memoryHandler
+    MemoryHandler memoryHandler = new MemoryHandler(configuration);
+    memoryHandler.Scanner.Locations.Clear();
 
-        // Set signatures
-        string signaturesText = File.ReadAllText("signatures.json");
-        var signatures = JsonConvert.DeserializeObject<List<Signature>>(signaturesText);
-        if (signatures != null)
-        {
-            memoryHandler.Scanner.LoadOffsets(signatures.ToArray());
-        }
-
-        return memoryHandler;
-    }
-    catch (Exception)
+    // Set signatures
+    string signaturesText = File.ReadAllText("signatures.json");
+    var signatures = JsonConvert.DeserializeObject<List<Signature>>(signaturesText);
+    if (signatures != null)
     {
-        throw new Exception();
+        memoryHandler.Scanner.LoadOffsets(signatures.ToArray());
     }
+
+    return memoryHandler;
 }
 
 #endregion
