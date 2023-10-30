@@ -36,29 +36,26 @@ void MainProcess()
     {
         try
         {
-            MemoryHandler memoryHandler = GetGameProcess();
+            MemoryHandler memoryHandler = CreateMemoryHandler();
+            PassData("CONSOLE", "003D", "", "Start reading ffxiv_dx11.exe.");
             isRunning = true;
-            Task.Run(aliveCheck);
-            while (isRunning)
-            {
-                RunScanner(memoryHandler);
-                TaskDelay();
-            }
-            PassData("MESSAGE", "003D", "", "ffxiv_dx11.exe is closed.");
+            Task.Run(AliveCheck);
+            RunReader(memoryHandler);
+            PassData("CONSOLE", "003D", "", "Stop reading ffxiv_dx11.exe.");
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            PassData("MESSAGE", "003D", "", "Waiting for ffxiv_dx11.exe......");
+            PassData("CONSOLE", "003D", "", ex.Message);
         }
         TaskDelay(1000);
     }
 }
 
-MemoryHandler GetGameProcess()
+MemoryHandler CreateMemoryHandler()
 {
     // Get process
     Process[] processes = Process.GetProcessesByName("ffxiv_dx11");
-    if (processes.Length <= 0) { throw new Exception(); }
+    if (processes.Length <= 0) { throw new Exception("Waiting for ffxiv_dx11.exe......"); }
 
     // Create configuration
     SharlayanConfiguration configuration = new SharlayanConfiguration
@@ -87,7 +84,7 @@ MemoryHandler GetGameProcess()
 #endregion
 
 #region ChatLogScanner
-void ChatLogScanner(MemoryHandler memoryHandler)
+void ReadChatLog(MemoryHandler memoryHandler)
 {
     try
     {
@@ -190,7 +187,7 @@ bool isNotRepeated(string code, string text)
 #endregion
 
 #region DialogScanner
-void DialogScanner(MemoryHandler memoryHandler)
+void ReadDialog(MemoryHandler memoryHandler)
 {
     try
     {
@@ -291,7 +288,7 @@ int GetRealTextLength(ref byte[] byteArray)
 #endregion
 
 #region CutsceneScanner
-void CutsceneScanner(MemoryHandler memoryHandler)
+void ReadCutscene(MemoryHandler memoryHandler)
 {
     try
     {
@@ -368,7 +365,7 @@ string ByteArrayToString(byte[] byteArray)
 #endregion
 
 #region System Functions
-async Task aliveCheck()
+async Task AliveCheck()
 {
     while (true)
     {
@@ -386,16 +383,18 @@ async Task aliveCheck()
     }
 }
 
-void RunScanner(MemoryHandler memoryHandler)
+void RunReader(MemoryHandler memoryHandler)
 {
-    if (!memoryHandler.Scanner.IsScanning)
+    while (isRunning)
     {
-        Task.Run(() =>
+        if (!memoryHandler.Scanner.IsScanning)
         {
-            ChatLogScanner(memoryHandler);
-            DialogScanner(memoryHandler);
-            CutsceneScanner(memoryHandler);
-        });
+            ReadChatLog(memoryHandler);
+            ReadDialog(memoryHandler);
+            ReadCutscene(memoryHandler);
+        }
+
+        TaskDelay();
     }
 }
 
