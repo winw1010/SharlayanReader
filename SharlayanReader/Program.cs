@@ -37,13 +37,13 @@ void MainProcess()
         try
         {
             MemoryHandler memoryHandler = CreateMemoryHandler();
-            PassData("CONSOLE", "003D", "", "Start reading ffxiv_dx11.exe.");
+            WriteData("CONSOLE", "003D", "", "Start reading ffxiv_dx11.exe.");
             RunReader(memoryHandler);
-            PassData("CONSOLE", "003D", "", "Stop reading ffxiv_dx11.exe.");
+            WriteData("CONSOLE", "003D", "", "Stop reading ffxiv_dx11.exe.");
         }
         catch (Exception ex)
         {
-            PassData("CONSOLE", "003D", "", ex.Message);
+            WriteData("CONSOLE", "003D", "", ex.Message);
         }
         TaskDelay(1000);
     }
@@ -128,7 +128,7 @@ void ReadChatLog(MemoryHandler memoryHandler)
 
                     if (chatLogItem.Code != "003D" || isNotRepeated(chatLogItem.Code, logText))
                     {
-                        PassData("CHAT_LOG", chatLogItem.Code, logName, logText);
+                        WriteData("CHAT_LOG", chatLogItem.Code, logName, logText);
                     }
                 }
             }
@@ -207,7 +207,7 @@ void ReadDialog(MemoryHandler memoryHandler)
         {
             lastDialogText = dialogText;
             addHistory(dialogText);
-            PassData("DIALOG", "003D", dialogName, dialogText);
+            WriteData("DIALOG", "003D", dialogName, dialogText);
         }
     }
     catch (Exception)
@@ -300,7 +300,7 @@ void ReadCutscene(MemoryHandler memoryHandler)
         if (cutsceneText.Length > 0 && cutsceneText != lastCutsceneText)
         {
             lastCutsceneText = cutsceneText;
-            PassData("CUTSCENE", "003D", "", cutsceneText, 1000);
+            WriteData("CUTSCENE", "003D", "", cutsceneText, 1000);
         }
     }
     catch (Exception)
@@ -410,7 +410,7 @@ void TaskDelay(int delayTIme = 50)
     }
 }
 
-async void PassData(string type, string code, string name, string text, int sleepTime = 0)
+async void WriteData(string type, string code, string name, string text, int sleepTime = 0)
 {
     await Task.Delay(sleepTime);
 
