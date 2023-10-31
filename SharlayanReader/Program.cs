@@ -37,13 +37,11 @@ void MainProcess()
         try
         {
             MemoryHandler memoryHandler = CreateMemoryHandler();
-            WriteData("CONSOLE", "003D", "", "Start reading ffxiv_dx11.exe.");
             RunReader(memoryHandler);
-            WriteData("CONSOLE", "003D", "", "Stop reading ffxiv_dx11.exe.");
         }
         catch (Exception ex)
         {
-            WriteData("CONSOLE", "003D", "", ex.Message);
+            WriteData("CONSOLE", "FFFF", "", ex.Message);
         }
         TaskDelay(1000);
     }
@@ -363,6 +361,28 @@ string ByteArrayToString(byte[] byteArray)
 #endregion
 
 #region System Functions
+void RunReader(MemoryHandler memoryHandler)
+{
+    WriteData("CONSOLE", "FFFF", "", "Start reading ffxiv_dx11.exe.");
+
+    isRunning = true;
+    Task.Run(AliveCheck);
+
+    while (isRunning)
+    {
+        if (!memoryHandler.Scanner.IsScanning)
+        {
+            ReadChatLog(memoryHandler);
+            ReadDialog(memoryHandler);
+            ReadCutscene(memoryHandler);
+        }
+
+        TaskDelay();
+    }
+
+    WriteData("CONSOLE", "FFFF", "", "Stop reading ffxiv_dx11.exe.");
+}
+
 async Task AliveCheck()
 {
     while (true)
@@ -378,24 +398,6 @@ async Task AliveCheck()
             isRunning = false;
             break;
         }
-    }
-}
-
-void RunReader(MemoryHandler memoryHandler)
-{
-    isRunning = true;
-    Task.Run(AliveCheck);
-
-    while (isRunning)
-    {
-        if (!memoryHandler.Scanner.IsScanning)
-        {
-            ReadChatLog(memoryHandler);
-            ReadDialog(memoryHandler);
-            ReadCutscene(memoryHandler);
-        }
-
-        TaskDelay();
     }
 }
 
