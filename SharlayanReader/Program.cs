@@ -81,7 +81,7 @@ MemoryHandler CreateMemoryHandler()
 
 #endregion
 
-#region ChatLogScanner
+#region Chat Log Functions
 void ReadChatLog(MemoryHandler memoryHandler)
 {
     try
@@ -184,7 +184,7 @@ bool isNotRepeated(string code, string text)
 }
 #endregion
 
-#region DialogScanner
+#region Dialog Functions
 void ReadDialog(MemoryHandler memoryHandler)
 {
     try
@@ -285,7 +285,7 @@ int GetRealTextLength(ref byte[] byteArray)
 */
 #endregion
 
-#region CutsceneScanner
+#region Cutscene Functions
 void ReadCutscene(MemoryHandler memoryHandler)
 {
     try
