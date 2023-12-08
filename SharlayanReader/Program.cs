@@ -51,7 +51,7 @@ MemoryHandler CreateMemoryHandler()
 {
     // Get process
     Process[] processes = Process.GetProcessesByName("ffxiv_dx11");
-    if (processes.Length <= 0) { throw new Exception("Waiting for ffxiv_dx11.exe......"); }
+    if (processes.Length <= 0) { throw new Exception("Waiting..."); }
 
     // Create configuration
     SharlayanConfiguration configuration = new SharlayanConfiguration
@@ -363,7 +363,7 @@ string ByteArrayToString(byte[] byteArray)
 #region System Functions
 void RunReader(MemoryHandler memoryHandler)
 {
-    WriteData("CONSOLE", "FFFF", "", "Start reading ffxiv_dx11.exe.");
+    WriteData("CONSOLE", "FFFF", "", "Start reading...");
 
     isRunning = true;
     Task.Run(AliveCheck);
@@ -380,7 +380,7 @@ void RunReader(MemoryHandler memoryHandler)
         TaskDelay();
     }
 
-    WriteData("CONSOLE", "FFFF", "", "Stop reading ffxiv_dx11.exe.");
+    WriteData("CONSOLE", "FFFF", "", "Stop reading...");
 }
 
 async Task AliveCheck()
