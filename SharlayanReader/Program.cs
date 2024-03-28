@@ -23,6 +23,7 @@ string lastDialogText = "";
 string lastCutsceneText = "";
 
 List<string> dialogHistory = new List<string>();
+List<string> systemCode = new List<string>() { "0039", "0839", "0003", "0038", "003C", "0048", "001D", "001C" };
 #endregion
 
 #region Main Process
@@ -103,17 +104,15 @@ void ReadChatLog(MemoryHandler memoryHandler)
                     string logName = getLogName(chatLogItem);
                     string logText = chatLogItem.Message;
 
-                    /*
                     if (logName.Length == 0 && systemCode.IndexOf(chatLogItem.Code) < 0)
                     {
                         string[] splitedMessage = logText.Split(':');
-                        if (splitedMessage.Length > 1 && splitedMessage[0].Length > 0)
+                        if (splitedMessage[0].Length > 0 && splitedMessage.Length > 1)
                         {
                             logName = splitedMessage[0];
                             logText = logText.Replace(logName + ":", "");
                         }
                     }
-                    */
 
                     if (chatLogItem.Code != "003D" || isNotRepeated(chatLogItem.Code, logText))
                     {
