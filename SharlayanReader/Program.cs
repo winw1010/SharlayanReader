@@ -100,29 +100,20 @@ void ReadChatLog(MemoryHandler memoryHandler)
                 {
                     lastChatLogMessage = chatLogItem.Message;
 
-                    string chatLogMessage = chatLogItem.Message;
-                    string playerName = getPlayerName(chatLogItem);
-                    string logName = "";
-                    string logText = "";
+                    string logName = getLogName(chatLogItem);
+                    string logText = chatLogItem.Message;
 
-                    if (playerName.Length > 0)
+                    /*
+                    if (logName.Length == 0 && systemCode.IndexOf(chatLogItem.Code) < 0)
                     {
-                        logName = playerName;
-                        logText = chatLogMessage;
-                    }
-                    else
-                    {
-                        string[] splitedMessage = chatLogMessage.Split(':');
+                        string[] splitedMessage = logText.Split(':');
                         if (splitedMessage.Length > 1 && splitedMessage[0].Length > 0)
                         {
                             logName = splitedMessage[0];
-                            logText = chatLogMessage.Replace(logName + ":", "");
-                        }
-                        else
-                        {
-                            logText = chatLogMessage;
+                            logText = logText.Replace(logName + ":", "");
                         }
                     }
+                    */
 
                     if (chatLogItem.Code != "003D" || isNotRepeated(chatLogItem.Code, logText))
                     {
@@ -139,19 +130,22 @@ void ReadChatLog(MemoryHandler memoryHandler)
     return;
 }
 
-string getPlayerName(ChatLogItem chatLogItem)
+string getLogName(ChatLogItem chatLogItem)
 {
-    string playerName = "";
+    string logName = "";
 
     try
     {
-        playerName = chatLogItem.PlayerName.Trim();
+        if (chatLogItem.PlayerName != null)
+        {
+            logName = chatLogItem.PlayerName;
+        }
     }
     catch (Exception)
     {
     }
 
-    return playerName;
+    return logName;
 }
 
 void addHistory(string text)
